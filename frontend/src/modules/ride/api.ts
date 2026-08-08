@@ -2,8 +2,8 @@ import client from '#core/api/client'
 import { ENDPOINTS } from '#core/api/endpoints'
 import type { Ride, CreateRidePayload } from './types'
 
-export async function getRides(): Promise<Ride[]> {
-  const { data } = await client.get<Ride[]>(ENDPOINTS.RIDES.LIST)
+export async function getRides(params?: Record<string, any>): Promise<Ride[]> {
+  const { data } = await client.get<Ride[]>(ENDPOINTS.RIDES.LIST, { params })
   return data
 }
 
