@@ -4,10 +4,10 @@ import type { CreateRidePayload } from './types'
 
 export const RIDES_KEY = ['rides'] as const
 
-export function useRides() {
+export function useRides(params?: Record<string, any>) {
   return useQuery({
-    queryKey: RIDES_KEY,
-    queryFn: getRides,
+    queryKey: [...RIDES_KEY, params],
+    queryFn: () => getRides(params),
   })
 }
 
