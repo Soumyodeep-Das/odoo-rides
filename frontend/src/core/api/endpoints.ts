@@ -16,12 +16,21 @@ export const ENDPOINTS = {
     DELETE: (id: string | number) => `/rides/${id}`,
   },
 
-  // Bookings
+  // Bookings (nested under rides on the backend)
   BOOKINGS: {
-    LIST: '/bookings',
-    CREATE: '/bookings',
-    DETAIL: (id: string | number) => `/bookings/${id}`,
-    CANCEL: (id: string | number) => `/bookings/${id}/cancel`,
+    /** GET /rides/my-rides/passenger/:passengerId */
+    PASSENGER: (passengerId: string) => `/rides/my-rides/passenger/${passengerId}`,
+    /** POST /rides/:rideId/book */
+    BOOK: (rideId: string) => `/rides/${rideId}/book`,
+    /** POST /rides/:rideId/bookings/:bookingId/cancel */
+    CANCEL: (rideId: string, bookingId: string) => `/rides/${rideId}/bookings/${bookingId}/cancel`,
+    /** GET /rides/:rideId/bookings */
+    RIDE_BOOKINGS: (rideId: string) => `/rides/${rideId}/bookings`,
+  },
+
+  // Vehicles (employee self-service)
+  VEHICLES: {
+    MINE: '/vehicles/mine',
   },
 
   // Wallet

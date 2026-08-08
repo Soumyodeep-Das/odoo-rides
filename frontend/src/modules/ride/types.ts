@@ -1,21 +1,44 @@
+export interface RideDriver {
+  id: string
+  name: string
+  email: string
+  phone: string
+  orgId: string
+  org?: { id: string; name: string }
+}
+
+export interface RideVehicle {
+  id: string
+  make: string
+  carModel: string
+  color: string
+  regNo: string
+  seats: number
+}
+
 export interface Ride {
-  id: number
-  origin: string
-  destination: string
-  departureTime: string
+  id: string
+  pickup: string
+  dropoff: string
+  departure: string
+  totalSeats: number
   availableSeats: number
-  pricePerSeat: number
-  driver: {
-    id: number
-    name: string
-  }
-  status: 'active' | 'full' | 'cancelled' | 'completed'
+  price: number
+  status: 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED'
+  driverId: string
+  vehicleId: string
+  driver: RideDriver
+  vehicle: RideVehicle
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateRidePayload {
-  origin: string
-  destination: string
-  departureTime: string
-  availableSeats: number
-  pricePerSeat: number
+  driverId: string
+  vehicleId: string
+  pickup: string
+  dropoff: string
+  departure: string
+  totalSeats: number
+  price: number
 }

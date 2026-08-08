@@ -7,7 +7,7 @@ export async function getRides(params?: Record<string, any>): Promise<Ride[]> {
   return Array.isArray(data) ? data : (data?.data || [])
 }
 
-export async function getRide(id: number): Promise<Ride> {
+export async function getRide(id: string): Promise<Ride> {
   const { data } = await client.get<any>(ENDPOINTS.RIDES.DETAIL(id))
   return data?.data || data
 }
@@ -17,6 +17,6 @@ export async function createRide(payload: CreateRidePayload): Promise<Ride> {
   return data?.data || data
 }
 
-export async function deleteRide(id: number): Promise<void> {
+export async function deleteRide(id: string): Promise<void> {
   await client.delete(ENDPOINTS.RIDES.DELETE(id))
 }

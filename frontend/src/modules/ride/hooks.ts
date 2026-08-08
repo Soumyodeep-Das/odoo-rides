@@ -24,7 +24,7 @@ export function useDeleteRide() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => deleteRide(id),
+    mutationFn: (id: string) => deleteRide(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: RIDES_KEY }),
   })
 }
