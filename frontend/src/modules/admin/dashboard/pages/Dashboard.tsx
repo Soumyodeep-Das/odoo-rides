@@ -8,15 +8,15 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome banner */}
       <div className="rounded-2xl border border-border bg-gradient-to-r from-primary/10 to-transparent p-6">
-        <h2 className="text-xl font-bold">Welcome back, Admin 👋</h2>
+        <h2 className="text-xl font-bold">Welcome back, Admin </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Here's what's happening with your carpool programme today.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           {[
             { label: 'Manage Employees', to: '/admin/employees' },
-            { label: 'View Vehicles',    to: '/admin/vehicles'  },
-            { label: 'Full Reports',     to: '/admin/reports'   },
+            { label: 'View Vehicles', to: '/admin/vehicles' },
+            { label: 'Full Reports', to: '/admin/reports' },
           ].map(({ label, to }) => (
             <Link
               key={to}

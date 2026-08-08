@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, PlusCircle, LogOut } from 'lucide-react'
+import { Search, PlusCircle, LogOut, Shield } from 'lucide-react'
 
 
 import { cn } from '#lib/utils'
