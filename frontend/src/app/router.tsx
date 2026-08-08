@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('#modules/dashboard/pages/EmployeeDashboardP
 const RideList = lazy(() => import('#modules/ride/pages/RideList'))
 const CreateRide = lazy(() => import('#modules/ride/pages/CreateRide'))
 const MyBookings = lazy(() => import('#modules/booking/pages/MyBookings'))
+const RegisterVehicle = lazy(() => import('#modules/vehicle/pages/RegisterVehicle'))
 
 const router = createBrowserRouter([
   {
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
       { path: 'bookings', element: <MyBookings /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      { path: 'vehicles/register', element: <RegisterVehicle /> },
     ],
   },
 ])

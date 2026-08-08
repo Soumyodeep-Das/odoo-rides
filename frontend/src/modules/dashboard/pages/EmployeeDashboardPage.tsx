@@ -205,9 +205,9 @@ export default function EmployeeDashboardPage() {
                         <div className="text-xs font-mono text-muted-foreground mt-1">WB 24 AV 1187</div>
                         <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">1 seat · Registered</div>
                     </div>
-                    <button className="rounded-2xl border border-dashed border-border flex items-center justify-center text-sm font-medium text-muted-foreground hover:bg-muted transition-colors hover:text-foreground min-h-[120px]">
+                    <Link to="/vehicles/register" className="rounded-2xl border border-dashed border-border flex items-center justify-center text-sm font-medium text-muted-foreground hover:bg-muted transition-colors hover:text-foreground min-h-[120px]">
                         + Register vehicle
-                    </button>
+                    </Link>
                 </div>
             </section>
 
