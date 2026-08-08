@@ -5,9 +5,9 @@ import { z } from 'zod'
 const addEmployeeSchema = z.object({
   name: z.string(),
   email: z.string().email(),
-  department: z.string().optional(),
+  // department: z.string().optional(),
   role: z.enum(['admin', 'employee', 'ADMIN', 'EMPLOYEE']),
-  location: z.string().optional(),
+  // location: z.string().optional(),
   phone: z.string().optional(),
 })
 
@@ -15,10 +15,10 @@ const mapEmployee = (emp: any) => ({
   id: emp.id,
   name: emp.name,
   email: emp.email,
-  department: 'General',
-  location: 'HQ',
+  // department: 'General',
+  // location: 'HQ',
   role: emp.role === 'ADMIN' ? 'admin' : 'employee',
-  status: 'active',
+  // status: 'active',
   joinedAt: emp.createdAt,
   phone: emp.phone,
 })
