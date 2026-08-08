@@ -196,3 +196,85 @@
 .animate-drive-swoosh {
   animation: drive-swoosh 2.5s infinite;
 }
+
+@keyframes fade-in-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+}
+
+@keyframes crossfade-1 {
+
+  0%,
+  40% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  45%,
+  90% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  95%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes crossfade-2 {
+
+  0%,
+  40% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  45%,
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  95%,
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.animate-crossfade-1 {
+  animation: crossfade-1 8s infinite;
+}
+
+.animate-crossfade-2 {
+  animation: crossfade-2 8s infinite;
+}

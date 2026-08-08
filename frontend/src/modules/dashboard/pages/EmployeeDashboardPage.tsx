@@ -11,8 +11,16 @@ export default function EmployeeDashboardPage() {
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-8">
                     <div>
                         <h1 className="text-4xl font-extrabold tracking-tight mb-8">Odoo Rıdes<span className="text-primary animate-drive-swoosh inline-block">.</span></h1>
-                        <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Good Morning</div>
-                        <h2 className="text-2xl font-bold mt-1">Where are you headed?</h2>
+                        <div className="relative h-14 min-w-[280px]">
+                            <div className="absolute inset-0 animate-crossfade-1">
+                                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Welcome back</div>
+                                <h2 className="text-2xl font-bold  mt-1">Good Morning, <span className="text-primary">Swayam</span> </h2>
+                            </div>
+                            <div className="absolute inset-0 opacity-0 animate-crossfade-2">
+                                <div className="text-sm font-semibold text-primary uppercase tracking-wide">Your next ride</div>
+                                <h2 className="text-2xl font-bold mt-1">Where are you headed?</h2>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col gap-3 min-w-[320px]">
