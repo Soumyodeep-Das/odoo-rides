@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Calendar, Users, DollarSign, Car, ArrowLeft } from 'lucide-react'
+import { Car, ArrowLeft } from 'lucide-react'
 import { useCreateRide } from '../hooks'
 
 import 'leaflet/dist/leaflet.css'
@@ -135,9 +135,9 @@ export default function CreateRide() {
       {
         origin,
         destination,
-        departureTime: (e.currentTarget.elements.namedItem('departureTime') as HTMLInputElement).value,
-        availableSeats: Number((e.currentTarget.elements.namedItem('availableSeats') as HTMLSelectElement).value),
-        pricePerSeat: Number((e.currentTarget.elements.namedItem('pricePerSeat') as HTMLInputElement).value),
+        departureTime: new Date().toISOString(), // Handled by admin settings
+        availableSeats: 4, // Handled by admin settings
+        pricePerSeat: 50, // Handled by admin settings
       },
       { onSuccess: () => navigate('/rides') }
     )
@@ -202,49 +202,6 @@ export default function CreateRide() {
                   onChange={e => setDestination(e.target.value)}
                   placeholder="Destination (e.g. DLF IT Park)"
                   className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all relative z-10"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Date & Time</label>
-                <div className="relative group">
-                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                  <input
-                    type="datetime-local"
-                    name="departureTime"
-                    required
-                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all text-foreground"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Available Seats</label>
-                <div className="relative group">
-                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                  <select
-                    name="availableSeats"
-                    required
-                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all appearance-none cursor-pointer"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Fare Per Seat</label>
-              <div className="relative group">
-                <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                <input
-                  type="number"
-                  name="pricePerSeat"
-                  required
-                  min="1"
-                  placeholder="e.g. 50"
-                  className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all"
                 />
               </div>
             </div>
