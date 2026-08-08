@@ -1,4 +1,5 @@
-import { Bell, Moon, Sun, Search } from 'lucide-react'
+import { Bell, Moon, Sun, Car } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
 import { useState } from 'react'
 import { cn } from '#lib/utils'
 import { useAuth } from '#core/hooks/useAuth'
@@ -33,18 +34,14 @@ export function AdminNavbar({ title }: AdminNavbarProps) {
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search…"
-            className={cn(
-              'h-8 w-52 rounded-lg border border-input bg-background pl-8 pr-3 text-sm',
-              'outline-none focus:ring-2 focus:ring-ring transition-all'
-            )}
-          />
-        </div>
+        {/* Switch to Ride Mode */}
+        <NavLink
+          to="/"
+          className="hidden sm:flex items-center gap-2 rounded-lg border border-primary text-primary px-3 py-1.5 text-sm font-medium hover:bg-primary/10 transition-colors"
+        >
+          <Car className="h-4 w-4" />
+          Ride Mode
+        </NavLink>
 
         {/* Dark mode */}
         <button

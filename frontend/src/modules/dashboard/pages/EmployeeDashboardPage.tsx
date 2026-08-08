@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, PlusCircle } from 'lucide-react'
+import { Search, PlusCircle, Shield } from 'lucide-react'
 import { cn } from '#lib/utils'
+import { useAuth } from '#core/hooks/useAuth'
 
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -19,6 +20,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow,
 })
 export default function EmployeeDashboardPage() {
+    const { user } = useAuth()
     const [position, setPosition] = useState<[number, number] | null>(null)
 
     useEffect(() => {
@@ -47,11 +49,19 @@ export default function EmployeeDashboardPage() {
             <section>
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-8">
                     <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight mb-8">Odoo Rıdes<span className="text-primary animate-drive-swoosh inline-block">.</span></h1>
+                        <div className="flex items-center gap-4 mb-8">
+                            <h1 className="text-4xl font-extrabold tracking-tight">Odoo Rıdes<span className="text-primary animate-drive-swoosh inline-block">.</span></h1>
+                            {user?.role === 'ADMIN' && (
+                                <Link to="/admin" className="hidden sm:flex items-center gap-2 rounded-lg border border-primary text-primary px-3 py-1.5 text-sm font-medium hover:bg-primary/10 transition-colors">
+                                    <Shield className="h-4 w-4" />
+                                    Admin Mode
+                                </Link>
+                            )}
+                        </div>
                         <div className="relative h-14 min-w-[280px]">
                             <div className="absolute inset-0 animate-crossfade-1">
                                 <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Welcome back</div>
-                                <h2 className="text-2xl font-bold mt-1 whitespace-nowrap">{greeting}, <span className="text-primary">Swayam</span></h2>
+                                <h2 className="text-2xl font-bold mt-1 whitespace-nowrap">{greeting}, <span className="text-primary">{user?.name?.split(' ')[0] || 'Rider'}</span></h2>
                             </div>
                             <div className="absolute inset-0 opacity-0 animate-crossfade-2">
                                 <div className="text-sm font-semibold text-primary uppercase tracking-wide">Your next ride</div>
