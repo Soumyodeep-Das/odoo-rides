@@ -1,5 +1,9 @@
 import { SummaryCards } from '../components/SummaryCards'
-import { RidesTrendChart, DepartmentRidesChart } from '../components/Charts'
+import {
+  RidesTrendChart,
+  RideStatusChart,
+  SeatUtilizationChart,
+} from '../components/Charts'
 
 export default function ReportsPage() {
   return (
@@ -24,9 +28,15 @@ export default function ReportsPage() {
         <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Analytics
         </h3>
+        {/* Row 1 — trend takes full width on large screens, status takes half */}
         <div className="grid gap-6 lg:grid-cols-2">
           <RidesTrendChart />
-          <DepartmentRidesChart />
+          <RideStatusChart />
+        </div>
+
+        {/* Row 2 — seat utilisation spans full width for readability */}
+        <div className="mt-6">
+          <SeatUtilizationChart />
         </div>
       </section>
     </div>
