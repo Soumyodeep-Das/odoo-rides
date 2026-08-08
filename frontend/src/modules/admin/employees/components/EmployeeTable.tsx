@@ -40,6 +40,11 @@ export function EmployeeTable({ search }: { search: string }) {
         </div>
       ),
     },
+    {
+      key: 'empId',
+      header: 'Employee ID',
+      render: (e) => e.id,
+    },
     // { key: 'department', header: 'Department' },
     // { key: 'manager',    header: 'Manager',    render: (e) => e.manager ?? '—' },
     // { key: 'location',   header: 'Location' },

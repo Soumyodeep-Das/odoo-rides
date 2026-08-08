@@ -7,11 +7,30 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]
+  id           String      @id @default(uuid())
+  name         String
+  address      String?
+  industry     String?
+  contactEmail String?
+  contactPhone String?
+  logoUrl      String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  users        User[]
+  settings     OrgSettings?
+}
+
+model OrgSettings {
+  id                    String       @id @default(uuid())
+  orgId                 String       @unique
+  fuelCostPerLitre      Float        @default(90.0)
+  costPerKm             Float        @default(4.5)
+  travelAllowancePerKm  Float        @default(3.0)
+  maxSeatsPerRide       Int          @default(4)
+  bookingCutoffMinutes  Int          @default(30)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  org                   Organization @relation(fields: [orgId], references: [id])
 }
 
 model User {
@@ -22,6 +41,7 @@ model User {
   email     String       @unique
   password  String
   phone     String
+  avatarUrl String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   bookings  Booking[]
