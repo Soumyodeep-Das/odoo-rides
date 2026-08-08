@@ -11,7 +11,6 @@ export interface CarpoolConfig {
   fuelCostPerLitre: number
   costPerKm: number
   travelAllowancePerKm: number
-  maxSeatsPerRide: number
   bookingCutoffMinutes: number
 }
 

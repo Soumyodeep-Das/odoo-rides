@@ -26,7 +26,6 @@ model OrgSettings {
   fuelCostPerLitre      Float        @default(90.0)
   costPerKm             Float        @default(4.5)
   travelAllowancePerKm  Float        @default(3.0)
-  maxSeatsPerRide       Int          @default(4)
   bookingCutoffMinutes  Int          @default(30)
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt

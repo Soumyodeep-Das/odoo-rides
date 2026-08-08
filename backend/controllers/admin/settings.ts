@@ -15,7 +15,6 @@ const carpoolConfigSchema = z.object({
   fuelCostPerLitre: z.number().min(0),
   costPerKm: z.number().min(0),
   travelAllowancePerKm: z.number().min(0),
-  maxSeatsPerRide: z.number().int().min(1),
   bookingCutoffMinutes: z.number().int().min(0),
 })
 
@@ -45,7 +44,6 @@ export const getSettings = async (req: Request, res: Response) => {
         fuelCostPerLitre: org.settings?.fuelCostPerLitre ?? 90.0,
         costPerKm: org.settings?.costPerKm ?? 4.5,
         travelAllowancePerKm: org.settings?.travelAllowancePerKm ?? 3.0,
-        maxSeatsPerRide: org.settings?.maxSeatsPerRide ?? 4,
         bookingCutoffMinutes: org.settings?.bookingCutoffMinutes ?? 30,
       }
     })
@@ -98,7 +96,6 @@ export const updateCarpoolConfig = async (req: Request, res: Response) => {
         fuelCostPerLitre: data.fuelCostPerLitre,
         costPerKm: data.costPerKm,
         travelAllowancePerKm: data.travelAllowancePerKm,
-        maxSeatsPerRide: data.maxSeatsPerRide,
         bookingCutoffMinutes: data.bookingCutoffMinutes,
       },
       create: {
@@ -106,7 +103,6 @@ export const updateCarpoolConfig = async (req: Request, res: Response) => {
         fuelCostPerLitre: data.fuelCostPerLitre,
         costPerKm: data.costPerKm,
         travelAllowancePerKm: data.travelAllowancePerKm,
-        maxSeatsPerRide: data.maxSeatsPerRide,
         bookingCutoffMinutes: data.bookingCutoffMinutes,
       }
     })
@@ -115,7 +111,6 @@ export const updateCarpoolConfig = async (req: Request, res: Response) => {
       fuelCostPerLitre: updated.fuelCostPerLitre,
       costPerKm: updated.costPerKm,
       travelAllowancePerKm: updated.travelAllowancePerKm,
-      maxSeatsPerRide: updated.maxSeatsPerRide,
       bookingCutoffMinutes: updated.bookingCutoffMinutes,
     })
   } catch (error) {
