@@ -1,10 +1,10 @@
 export const ENDPOINTS = {
   // Auth
   AUTH: {
-    LOGIN:            '/auth/login',
-    ONBOARD:          '/admin/onboarding',
+    LOGIN: '/auth/login',
+    ONBOARD: '/admin/onboarding',
     EMPLOYEE_ONBOARD: '/auth/employee-onboard',
-    ME:               '/auth/me',
+    ME: '/auth/me',
   },
 
   // Rides
@@ -31,6 +31,7 @@ export const ENDPOINTS = {
   // Vehicles (employee self-service)
   VEHICLES: {
     MINE: '/vehicles/mine',
+    REGISTER: '/vehicles',
   },
 
   // Wallet
