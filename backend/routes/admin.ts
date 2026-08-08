@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { onboardOrganisation } from '../controllers/admin/onboarding'
 import {
   getEmployees,
   addEmployee,
@@ -24,6 +25,9 @@ import {
 } from '../controllers/admin/reports.js'
 
 const router = Router()
+
+// Onboarding
+router.post('/onboarding', onboardOrganisation)
 
 // Employees
 router.get('/employees', getEmployees)

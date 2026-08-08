@@ -12,23 +12,18 @@ const STATUS_BADGE: Record<Employee['status'], string> = {
 }
 
 const ROLE_BADGE: Record<Employee['role'], string> = {
-  driver:    'bg-blue-500/10 text-blue-600',
-  passenger: 'bg-violet-500/10 text-violet-600',
+  employee:  'bg-blue-500/10 text-blue-600',
   admin:     'bg-amber-500/10 text-amber-600',
 }
 
-interface EmployeeTableProps {
-  search: string
-}
-
-export function EmployeeTable({ search }: EmployeeTableProps) {
+export function EmployeeTable({ search }: { search: string }) {
   const { data: employees = [], isLoading } = useEmployees()
   const { mutate: toggle } = useToggleEmployeeAccess()
   const { mutate: remove } = useDeleteEmployee()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filtered = employees.filter((e) =>
-    [e.name, e.email, e.department, e.location]
+    [e.name, e.email]
       .join(' ')
       .toLowerCase()
       .includes(search.toLowerCase())
@@ -45,9 +40,9 @@ export function EmployeeTable({ search }: EmployeeTableProps) {
         </div>
       ),
     },
-    { key: 'department', header: 'Department' },
-    { key: 'manager',    header: 'Manager',    render: (e) => e.manager ?? '—' },
-    { key: 'location',   header: 'Location' },
+    // { key: 'department', header: 'Department' },
+    // { key: 'manager',    header: 'Manager',    render: (e) => e.manager ?? '—' },
+    // { key: 'location',   header: 'Location' },
     {
       key: 'role',
       header: 'Role',

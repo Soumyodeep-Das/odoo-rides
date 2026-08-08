@@ -8,7 +8,7 @@ interface AddEmployeeModalProps {
   onClose: () => void
 }
 
-const ROLES: EmployeeRole[] = ['passenger', 'driver', 'admin']
+const ROLES: EmployeeRole[] = ['employee', 'admin']
 
 export function AddEmployeeModal({ open, onClose }: AddEmployeeModalProps) {
   const { mutate: add, isPending, error, reset } = useAddEmployee()
@@ -20,9 +20,9 @@ export function AddEmployeeModal({ open, onClose }: AddEmployeeModalProps) {
     const payload: AddEmployeePayload = {
       name:       fd.get('name') as string,
       email:      fd.get('email') as string,
-      department: fd.get('department') as string,
+      // department: fd.get('department') as string,
       role:       fd.get('role') as EmployeeRole,
-      location:   (fd.get('location') as string) || undefined,
+      // location:   (fd.get('location') as string) || undefined,
     }
     add(payload, {
       onSuccess: () => {
@@ -55,7 +55,7 @@ export function AddEmployeeModal({ open, onClose }: AddEmployeeModalProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label htmlFor="emp-dept" className="text-sm font-medium">Department</label>
             <input id="emp-dept" name="department" type="text" required className={fieldClass} placeholder="Engineering" />
@@ -64,7 +64,7 @@ export function AddEmployeeModal({ open, onClose }: AddEmployeeModalProps) {
             <label htmlFor="emp-location" className="text-sm font-medium">Location</label>
             <input id="emp-location" name="location" type="text" className={fieldClass} placeholder="Mumbai" />
           </div>
-        </div>
+        </div> */}
 
         <div className="space-y-1.5">
           <label htmlFor="emp-role" className="text-sm font-medium">Role</label>
