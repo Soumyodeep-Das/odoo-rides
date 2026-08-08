@@ -5,6 +5,7 @@ import compression from "compression";
 import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import rideRoutes from "./routes/ride.routes.js";
+import walletRoutes from "./routes/wallet.routes.ts";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -21,6 +22,7 @@ const apiRouter = express.Router();
 apiRouter.use("/admin", adminRoutes);
 apiRouter.use("/payments", paymentRoutes);
 apiRouter.use("/rides", rideRoutes);
+apiRouter.use("/wallet", walletRoutes);
 
 app.use("/api", apiRouter);
 
