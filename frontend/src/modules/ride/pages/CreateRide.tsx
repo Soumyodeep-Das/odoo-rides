@@ -87,7 +87,16 @@ export default function CreateRide() {
         return
       }
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        let viewboxParam = '';
+        if (position) {
+          const lat = position[0];
+          const lon = position[1];
+          // Create a roughly 220km bounding box around user's current location to prioritize local results
+          viewboxParam = `&viewbox=${lon - 1},${lat + 1},${lon + 1},${lat - 1}`;
+        }
+
+        // We use viewbox rather than countrycodes to softly prioritize local locations without blocking foreign ones.
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}${viewboxParam}`)
         const data = await res.json()
         if (data && data.length > 0) {
           setter([parseFloat(data[0].lat), parseFloat(data[0].lon)])
