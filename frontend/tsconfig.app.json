@@ -20,7 +20,18 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "#components/*": ["src/components/*"],
+      "#lib/*": ["src/lib/*"],
+      "#app/*": ["src/app/*"],
+      "#core/*": ["src/core/*"],
+      "#modules/*": ["src/modules/*"],
+      "#styles/*": ["src/styles/*"]
+    }
   },
   "include": ["src"]
 }
