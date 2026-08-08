@@ -57,7 +57,7 @@ export const addEmployee = async (req: Request, res: Response) => {
         email: data.email,
         role: data.role.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE',
         password: '', // will be set by employee via magic link
-        phone: data.phone || '0000000000',
+        phone: data.phone || '987654321',
         orgId,
       },
     })

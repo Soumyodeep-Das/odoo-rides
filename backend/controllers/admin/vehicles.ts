@@ -5,7 +5,7 @@ import { z } from 'zod'
 const addVehicleSchema = z.object({
   make: z.string(),
   model: z.string(),
-  year: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
+  year: z.number().int().min(1900).max(new Date().getFullYear()),
   licensePlate: z.string(),
   ownerId: z.string(),
   seats: z.number().int().min(1).max(12),
@@ -15,12 +15,12 @@ const mapVehicle = (v: any) => ({
   id: v.id,
   make: v.make,
   model: v.carModel,
-  year: 2020,
+  year: v.year,
   licensePlate: v.regNo,
   ownerId: v.userId,
   ownerName: v.user?.name || 'Unknown',
   seats: v.seats,
-  status: 'approved',
+  status: v.status?.toLowerCase() || 'pending',
   registeredAt: v.createdAt,
 })
 
@@ -60,6 +60,7 @@ export const addVehicle = async (req: Request, res: Response) => {
       data: {
         make: data.make,
         carModel: data.model,
+        year: data.year,
         regNo: data.licensePlate,
         seats: data.seats,
         userId: data.ownerId,
@@ -86,16 +87,13 @@ export const updateVehicleStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid status' })
     }
 
-    const vehicle = await prisma.vehicle.findUnique({ 
+    const vehicle = await prisma.vehicle.update({ 
       where: { id },
+      data: { status: lowerStatus.toUpperCase() as any },
       include: { user: { select: { name: true } } }
     })
-    if (!vehicle) {
-      return res.status(404).json({ error: 'Vehicle not found' })
-    }
     
-    // Status not in DB, mock update
-    res.json({ ...mapVehicle(vehicle), status: lowerStatus })
+    res.json(mapVehicle(vehicle))
   } catch (error) {
     res.status(500).json({ error: 'Failed to update vehicle status' })
   }
