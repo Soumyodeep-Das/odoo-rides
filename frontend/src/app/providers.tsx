@@ -3,9 +3,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ── Auth Context ──────────────────────────────────────────────────────────────
 
+export interface AuthUser {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: 'ADMIN' | 'EMPLOYEE'
+  orgId: string
+}
+
 interface AuthContextValue {
   token: string | null
-  setToken: (token: string | null) => void
+  user: AuthUser | null
+  setAuth: (token: string, user: AuthUser) => void
+  clearAuth: () => void
   isAuthenticated: boolean
 }
 
@@ -16,7 +27,7 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       retry: 1,
     },
   },
@@ -28,23 +39,36 @@ interface ProvidersProps {
   children: ReactNode
 }
 
-export function Providers({ children }: ProvidersProps) {
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem('token')
-  )
+function loadUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
-  const handleSetToken = (newToken: string | null) => {
+export function Providers({ children }: ProvidersProps) {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
+  const [user, setUser] = useState<AuthUser | null>(loadUser)
+
+  const setAuth = (newToken: string, newUser: AuthUser) => {
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(newUser))
     setToken(newToken)
-    if (newToken) {
-      localStorage.setItem('token', newToken)
-    } else {
-      localStorage.removeItem('token')
-    }
+    setUser(newUser)
+  }
+
+  const clearAuth = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext value={{ token, setToken: handleSetToken, isAuthenticated: !!token }}>
+      <AuthContext value={{ token, user, setAuth, clearAuth, isAuthenticated: !!token }}>
         {children}
       </AuthContext>
     </QueryClientProvider>

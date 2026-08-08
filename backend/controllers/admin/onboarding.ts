@@ -4,6 +4,7 @@ import type { Request, Response } from 'express'
 import { prisma } from '../../lib/prisma'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
+import { signToken } from '../../lib/jwt'
 
 const onboardingSchema = z.object({
   // Organisation details
@@ -58,10 +59,13 @@ export const onboardOrganisation = async (req: Request, res: Response) => {
       return { org, admin }
     })
 
+    const token = signToken({ sub: result.admin.id, role: result.admin.role, orgId: result.org.id })
+
     res.status(201).json({
       message: 'Organisation onboarded successfully',
+      token,
       organisation: { id: result.org.id, name: result.org.name },
-      admin: result.admin,
+      user: result.admin,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -1,8 +1,10 @@
-export interface User {
-  id: number
+export interface AuthUser {
+  id: string
   name: string
   email: string
-  phone?: string
+  phone: string
+  role: 'ADMIN' | 'EMPLOYEE'
+  orgId: string
 }
 
 export interface LoginPayload {
@@ -10,14 +12,22 @@ export interface LoginPayload {
   password: string
 }
 
-export interface RegisterPayload {
-  name: string
-  email: string
+export interface OnboardPayload {
+  orgName: string
+  adminName: string
+  adminEmail: string
+  adminPassword: string
+  adminPhone: string
+}
+
+export interface EmployeeOnboardPayload {
+  token: string
   password: string
-  phone?: string
+  phone: string
+  avatar?: File
 }
 
 export interface AuthResponse {
   token: string
-  user: User
+  user: AuthUser
 }

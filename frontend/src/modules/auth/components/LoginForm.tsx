@@ -1,20 +1,15 @@
-import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../hooks'
 
 export function LoginForm() {
   const { mutate: doLogin, isPending, error } = useLogin()
-  const navigate = useNavigate()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
-    doLogin(
-      {
-        email: form.get('email') as string,
-        password: form.get('password') as string,
-      },
-      { onSuccess: () => navigate('/') }
-    )
+    doLogin({
+      email: form.get('email') as string,
+      password: form.get('password') as string,
+    })
   }
 
   return (

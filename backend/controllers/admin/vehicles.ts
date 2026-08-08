@@ -26,17 +26,13 @@ const mapVehicle = (v: any) => ({
 
 export const getVehicles = async (req: Request, res: Response) => {
   try {
+    const orgId = req.user!.orgId
     const vehicles = await prisma.vehicle.findMany({
-      include: {
-        user: { select: { name: true } } // include ownerName
-      },
-      orderBy: { createdAt: 'desc' }
+      where: { user: { orgId } },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
     })
-    
-    // Map data to match frontend expectations (ownerName)
-    const formatted = vehicles.map(mapVehicle)
-    
-    res.json(formatted)
+    res.json(vehicles.map(mapVehicle))
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch vehicles' })
   }
@@ -49,6 +45,10 @@ export const addVehicle = async (req: Request, res: Response) => {
     const owner = await prisma.user.findUnique({ where: { id: data.ownerId } })
     if (!owner) {
       return res.status(404).json({ error: 'Owner not found' })
+    }
+    // Ensure the owner belongs to the same org as the requesting admin
+    if (owner.orgId !== req.user!.orgId) {
+      return res.status(403).json({ error: 'Owner does not belong to your organisation' })
     }
 
     const existing = await prisma.vehicle.findUnique({ where: { regNo: data.licensePlate } })

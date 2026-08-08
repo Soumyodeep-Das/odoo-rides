@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../../lib/prisma'
 import { z } from 'zod'
+import { signToken } from '../../lib/jwt'
+import { sendInviteEmail } from '../../lib/mailer'
 
 const addEmployeeSchema = z.object({
   name: z.string(),
@@ -25,13 +27,12 @@ const mapEmployee = (emp: any) => ({
 
 export const getEmployees = async (req: Request, res: Response) => {
   try {
+    const orgId = req.user!.orgId
     const employees = await prisma.user.findMany({
+      where: { orgId },
       orderBy: { createdAt: 'desc' },
     })
-    
-    const mapped = employees.map(mapEmployee)
-    
-    res.json(mapped)
+    res.json(employees.map(mapEmployee))
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch employees' })
   }
@@ -40,34 +41,42 @@ export const getEmployees = async (req: Request, res: Response) => {
 export const addEmployee = async (req: Request, res: Response) => {
   try {
     const data = addEmployeeSchema.parse(req.body)
-    
+
     // Check if email exists
     const existing = await prisma.user.findUnique({ where: { email: data.email } })
     if (existing) {
       return res.status(409).json({ error: 'Email already registered' })
     }
 
-    // Creating a mock org for now if needed, or assuming they pass orgId
-    // Since schema expects orgId, let's just assume we have a default org for admin context
-    let defaultOrg = await prisma.organization.findFirst()
-    if (!defaultOrg) {
-      defaultOrg = await prisma.organization.create({ data: { name: 'Default Org' } })
-    }
+    // Use the admin's orgId from JWT — no more findFirst hack
+    const orgId = req.user!.orgId
 
     const employee = await prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
         role: data.role.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE',
-        password: 'temporaryPassword123', // Dummy password for now
+        password: '', // will be set by employee via magic link
         phone: data.phone || '0000000000',
-        orgId: defaultOrg.id,
+        orgId,
       },
     })
-    res.status(201).json(mapEmployee(employee))
+
+    // Generate a 24h invite token and send the magic link
+    const inviteToken = signToken({ sub: employee.id, role: employee.role, orgId }, '24h')
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173'
+    const magicLink = `${frontendUrl}/employee-onboard?token=${inviteToken}`
+
+    // Send email async — don't block the response, but log clearly if it fails
+    sendInviteEmail(employee.email, employee.name, magicLink)
+      .then(() => console.log(`[mailer] Invite sent to ${employee.email}`))
+      .catch((err) => console.error(`[mailer] Failed to send to ${employee.email}:`, err?.message ?? err))
+
+    // Return the magic link so admin can share it manually if email fails
+    res.status(201).json({ ...mapEmployee(employee), magicLink })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation Error', details: (error as any).errors })
+      return res.status(400).json({ error: 'Validation Error', details: error.issues })
     }
     res.status(500).json({ error: 'Failed to add employee' })
   }

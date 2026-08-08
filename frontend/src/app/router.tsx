@@ -1,20 +1,19 @@
 import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader } from '#components/shared/Loader'
+import { RequireAuth, RequireAdmin, GuestOnly } from './guards'
 
 // ── Auth pages ────────────────────────────────────────────────────────────────
 const Login = lazy(() => import('#modules/auth/pages/Login'))
 const Register = lazy(() => import('#modules/auth/pages/Register'))
+const SetPassword = lazy(() => import('#modules/auth/pages/EmployeeOnboarding'))
 
+// ── Employee pages ────────────────────────────────────────────────────────────
 const EmpDashboard = lazy(() => import('#modules/dashboard/pages/EmployeeDashboardPage'))
 const RideList = lazy(() => import('#modules/ride/pages/RideList'))
 const CreateRide = lazy(() => import('#modules/ride/pages/CreateRide'))
 const MyBookings = lazy(() => import('#modules/booking/pages/MyBookings'))
 const RegisterVehicle = lazy(() => import('#modules/vehicle/pages/RegisterVehicle'))
-
-
-
-
 
 // ── Admin pages ───────────────────────────────────────────────────────────────
 const AdminLayout = lazy(() => import('#modules/admin/layout/AdminLayout'))
@@ -24,44 +23,71 @@ const VehiclesPage = lazy(() => import('#modules/admin/vehicles/pages/VehiclesPa
 const SettingsPage = lazy(() => import('#modules/admin/settings/pages/SettingsPage'))
 const ReportsPage = lazy(() => import('#modules/admin/reports/pages/ReportsPage'))
 
-
 const router = createBrowserRouter([
-  // ── User routes ──────────────────────────────────────────────────────────
+  // ── Guest-only routes (redirect away if already logged in) ────────────────
   {
-    path: '/',
     element: (
       <Suspense fallback={<Loader />}>
-        <Outlet />
+        <GuestOnly />
       </Suspense>
     ),
     children: [
-      { index: true, element: <EmpDashboard /> },
-      { path: 'rides', element: <RideList /> },
-      { path: 'rides/create', element: <CreateRide /> },
-
-      { path: 'bookings', element: <MyBookings /> },
-      { path: 'login', element: <Login /> },
-      { path: 'register', element: <Register /> },
-      { path: 'vehicles/register', element: <RegisterVehicle /> },
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <Register /> },
     ],
   },
 
-  // ── Admin routes ─────────────────────────────────────────────────────────
+  // ── Employee invite — accessible without auth ─────────────────────────────
   {
-    path: '/admin',
+    path: '/employee-onboard',
     element: (
       <Suspense fallback={<Loader />}>
-        <AdminLayout />
+        <SetPassword />
+      </Suspense>
+    ),
+  },
+
+  // ── Protected employee routes ─────────────────────────────────────────────
+  {
+    element: (
+      <Suspense fallback={<Loader />}>
+        <RequireAuth />
       </Suspense>
     ),
     children: [
-      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-      { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'employees', element: <EmployeesPage /> },
-      { path: 'vehicles', element: <VehiclesPage /> },
-      { path: 'reports', element: <ReportsPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: '/', element: <EmpDashboard /> },
+      { path: '/rides', element: <RideList /> },
+      { path: '/rides/create', element: <CreateRide /> },
+      { path: '/bookings', element: <MyBookings /> },
+      { path: '/vehicles/register', element: <RegisterVehicle /> },
+    ],
+  },
 
+  // ── Protected admin routes ────────────────────────────────────────────────
+  {
+    element: (
+      <Suspense fallback={<Loader />}>
+        <RequireAuth />
+      </Suspense>
+    ),
+    children: [
+      {
+        element: <RequireAdmin />,
+        children: [
+          {
+            path: '/admin',
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+              { path: 'dashboard', element: <AdminDashboard /> },
+              { path: 'employees', element: <EmployeesPage /> },
+              { path: 'vehicles', element: <VehiclesPage /> },
+              { path: 'reports', element: <ReportsPage /> },
+              { path: 'settings', element: <SettingsPage /> },
+            ],
+          },
+        ],
+      },
     ],
   },
 ])
