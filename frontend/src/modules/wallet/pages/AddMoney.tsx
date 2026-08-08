@@ -24,8 +24,7 @@ function getUserIdFromToken(token: string | null) {
 
 export default function AddMoney() {
     const { token } = useAuth()
-    // TODO: Replace with real userId from JWT once auth is fully wired
-    const userId = 'demo-user-1'
+    const userId = getUserIdFromToken(token)
 
     const queryClient = useQueryClient()
     const { data: wallet, isLoading: isWalletLoading } = useQuery({
