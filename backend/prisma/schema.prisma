@@ -33,14 +33,17 @@ model User {
 }
 
 model Vehicle {
-    id        String   @id @default(uuid())
-    user      User     @relation(fields: [userId], references: [id])
-    userId    String
-    carModel  String
-    make      String
-    color     String
-    seats     Int
-    regNo     String   @unique
+    id       String @id @default(uuid())
+    user     User   @relation(fields: [userId], references: [id])
+    userId   String
+    carModel String
+    make     String
+    color    String
+    seats    Int
+    regNo    String @unique
+
+    status VehicleStatus @default(PENDING)
+
     rides     Ride[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -57,6 +60,7 @@ model Ride {
     departure      DateTime
     totalSeats     Int
     availableSeats Int
+    version        Int        @default(1)
     status         RideStatus @default(SCHEDULED)
     bookings       Booking[]
     price          Decimal    @db.Decimal(10, 2)
@@ -163,6 +167,12 @@ enum PayoutStatus {
 enum BookingStatus {
     CONFIRMED
     CANCELLED
+}
+
+enum VehicleStatus {
+    PENDING
+    APPROVED
+    REJECTED
 }
 
 enum PaymentMethod {
