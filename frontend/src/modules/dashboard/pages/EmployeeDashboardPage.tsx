@@ -31,6 +31,14 @@ export default function EmployeeDashboardPage() {
             setPosition([22.5786, 88.4729]);
         }
     }, []);
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
+    let greeting = "Good Evening";
+    if (currentHour < 12) {
+        greeting = "Good Morning";
+    } else if (currentHour < 18) {
+        greeting = "Good Afternoon";
+    }
 
     return (
         <main className="container mx-auto px-4 py-8 space-y-12 max-w-5xl">
@@ -43,7 +51,7 @@ export default function EmployeeDashboardPage() {
                         <div className="relative h-14 min-w-[280px]">
                             <div className="absolute inset-0 animate-crossfade-1">
                                 <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Welcome back</div>
-                                <h2 className="text-2xl font-bold  mt-1">Good Morning, <span className="text-primary">Swayam</span> </h2>
+                                <h2 className="text-2xl font-bold mt-1 whitespace-nowrap">{greeting}, <span className="text-primary">Swayam</span></h2>
                             </div>
                             <div className="absolute inset-0 opacity-0 animate-crossfade-2">
                                 <div className="text-sm font-semibold text-primary uppercase tracking-wide">Your next ride</div>
