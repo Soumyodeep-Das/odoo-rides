@@ -164,6 +164,12 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum VehicleStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
 enum PaymentMethod {
   WALLET
   CASH
