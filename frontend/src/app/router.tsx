@@ -15,6 +15,11 @@ const CreateRide = lazy(() => import('#modules/ride/pages/CreateRide'))
 const MyBookings = lazy(() => import('#modules/booking/pages/MyBookings'))
 const RegisterVehicle = lazy(() => import('#modules/vehicle/pages/RegisterVehicle'))
 
+const AddMoney = lazy(() => import('#modules/wallet/pages/AddMoney'))
+
+
+
+
 // ── Admin pages ───────────────────────────────────────────────────────────────
 const AdminLayout = lazy(() => import('#modules/admin/layout/AdminLayout'))
 const AdminDashboard = lazy(() => import('#modules/admin/dashboard/pages/Dashboard'))
@@ -32,8 +37,17 @@ const router = createBrowserRouter([
       </Suspense>
     ),
     children: [
-      { path: '/login', element: <Login /> },
-      { path: '/register', element: <Register /> },
+
+      { index: true, element: <EmpDashboard /> },
+      { path: 'rides', element: <RideList /> },
+      { path: 'rides/create', element: <CreateRide /> },
+
+      { path: 'bookings', element: <MyBookings /> },
+      { path: 'login', element: <Login /> },
+      { path: 'register', element: <Register /> },
+      { path: 'vehicles/register', element: <RegisterVehicle /> },
+      { path: 'recharge', element: <AddMoney /> },
+
     ],
   },
 

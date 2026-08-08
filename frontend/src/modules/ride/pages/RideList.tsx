@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Calendar, Users, MapPin } from 'lucide-react'
+import { Search, Calendar, Users, MapPin, ArrowLeft } from 'lucide-react'
 import { useRides } from '../hooks'
 import { RideCard } from '../components/RideCard'
 import { Loader } from '#components/shared/Loader'
@@ -55,7 +55,24 @@ export default function RideList() {
     }
   }, []);
 
+  const [isLocating, setIsLocating] = useState(false);
 
+  const handleCurrentLocation = async () => {
+    if (!position) return;
+    setIsLocating(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position[0]}&lon=${position[1]}`);
+      const data = await res.json();
+      if (data && data.address) {
+        const shortName = data.address.suburb || data.address.neighbourhood || data.address.city || data.address.town || (data.display_name ? data.display_name.split(',')[0] : 'Current Location');
+        setSearchParams(prev => ({ ...prev, pickup: shortName }));
+      }
+    } catch (e) {
+      console.error('Reverse geocoding error', e);
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   // Display rides strictly from the backend search API
   const filteredRides = Array.isArray(rides) ? rides : ((rides as any)?.data || [])
@@ -66,6 +83,9 @@ export default function RideList() {
       <div className="w-full lg:w-[480px] flex flex-col h-[50vh] lg:h-full bg-card z-10 shrink-0 border-b lg:border-b-0 lg:border-r border-border">
         {/* Search Form */}
         <div className="p-6 border-b border-border bg-card/80 backdrop-blur-xl relative z-20">
+          <Link to="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-6">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
+          </Link>
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-extrabold tracking-tight">Find a ride<span className="text-primary inline-block">.</span></h1>
@@ -87,10 +107,23 @@ export default function RideList() {
               <input
                 type="text"
                 placeholder="Pickup location"
-                className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all relative z-10"
+                className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-10 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all relative z-10 max-w-full text-ellipsis overflow-hidden"
                 value={searchParams.pickup}
                 onChange={e => setSearchParams(prev => ({ ...prev, pickup: e.target.value }))}
               />
+              <button
+                onClick={handleCurrentLocation}
+                disabled={isLocating || !position}
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-primary transition-colors z-20 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+                title="Use current location"
+              >
+                {isLocating ? (
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <MapPin className="w-4 h-4" />
+                )}
+              </button>
             </div>
             {/* Destination Input */}
             <div className="relative group">
@@ -123,7 +156,7 @@ export default function RideList() {
                   value={searchParams.seats}
                   onChange={e => setSearchParams(prev => ({ ...prev, seats: parseInt(e.target.value) }))}
                 >
-                  {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+                  {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
                 </select>
               </div>
             </div>
