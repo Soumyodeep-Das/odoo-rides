@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Car, ArrowLeft, MapPin } from 'lucide-react'
+import { Car, ArrowLeft, MapPin, Clock, Users, DollarSign } from 'lucide-react'
 import { useCreateRide } from '../hooks'
+import { useAuth } from '#core/hooks/useAuth'
+import client from '#core/api/client'
+import { ENDPOINTS } from '#core/api/endpoints'
 
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
@@ -56,11 +59,25 @@ function MapUpdater({ originCoords, destCoords }: { originCoords: [number, numbe
 }
 
 export default function CreateRide() {
+  const { user } = useAuth()
   const { mutate: doCreate, isPending, error } = useCreateRide()
   const navigate = useNavigate()
 
-  const [position, setPosition] = useState<[number, number] | null>(null)
-  const [vehicleId, setVehicleId] = useState('honda_city')
+  // User's registered vehicles
+  const [vehicles, setVehicles] = useState<any[]>([])
+  const [vehicleId, setVehicleId] = useState('')
+
+  useEffect(() => {
+    client.get<any>(ENDPOINTS.VEHICLES.MINE).then(({ data }) => {
+      const list = data?.data || []
+      setVehicles(list)
+      if (list.length > 0) setVehicleId(list[0].id)
+    }).catch(() => {})
+  }, [])
+
+  const [departure, setDeparture] = useState('')
+  const [totalSeats, setTotalSeats] = useState(3)
+  const [price, setPrice] = useState(50)
 
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
@@ -68,6 +85,8 @@ export default function CreateRide() {
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null)
   const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null)
   const [routeMetrics, setRouteMetrics] = useState<{ distance: number, duration: number } | null>(null)
+  const [position, setPosition] = useState<[number, number] | null>(null)
+
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -159,13 +178,17 @@ export default function CreateRide() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!user || !vehicleId) return
+
     doCreate(
       {
-        origin,
-        destination,
-        departureTime: new Date().toISOString(), // Handled by admin settings
-        availableSeats: 4, // Handled by admin settings
-        pricePerSeat: 50, // Handled by admin settings
+        driverId: user.id,
+        vehicleId,
+        pickup: origin,
+        dropoff: destination,
+        departure: departure ? new Date(departure).toISOString() : new Date(Date.now() + 3600000).toISOString(),
+        totalSeats,
+        price,
       },
       { onSuccess: () => navigate('/rides') }
     )
@@ -184,20 +207,29 @@ export default function CreateRide() {
           <p className="text-sm font-medium text-muted-foreground mt-1 mb-8">Publish your route and share your journey.</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Vehicle Selector (Mock context based on design doc) */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Select Vehicle</label>
               <div className="relative group">
                 <Car className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
-                <select
-                  className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all appearance-none cursor-pointer"
-                  required
-                  value={vehicleId}
-                  onChange={(e) => setVehicleId(e.target.value)}
-                >
-                  <option value="honda_city">Honda City (WB 24 CX 4471)</option>
-                  <option value="tvs_jupiter">TVS Jupiter (WB 24 AV 1187)</option>
-                </select>
+                {vehicles.length === 0 ? (
+                  <div className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-muted-foreground">
+                    No vehicles registered —{' '}
+                    <Link to="/vehicles/register" className="text-primary font-semibold hover:underline">register one first</Link>
+                  </div>
+                ) : (
+                  <select
+                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all appearance-none cursor-pointer"
+                    required
+                    value={vehicleId}
+                    onChange={(e) => setVehicleId(e.target.value)}
+                  >
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.make} {v.carModel} · {v.regNo}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 
@@ -246,10 +278,55 @@ export default function CreateRide() {
                 />
               </div>
             </div>
+            {/* Departure datetime + seats + price */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5 col-span-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Departure Date &amp; Time</label>
+                <div className="relative group">
+                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="datetime-local"
+                    required
+                    value={departure}
+                    onChange={e => setDeparture(e.target.value)}
+                    min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
+                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all text-foreground"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Seats to Offer</label>
+                <div className="relative group">
+                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <select
+                    value={totalSeats}
+                    onChange={e => setTotalSeats(Number(e.target.value))}
+                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all appearance-none cursor-pointer"
+                  >
+                    {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Price per Seat (₹)</label>
+                <div className="relative group">
+                  <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="number"
+                    min={0}
+                    step={5}
+                    required
+                    value={price}
+                    onChange={e => setPrice(Number(e.target.value))}
+                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all"
+                  />
+                </div>
+              </div>
+            </div>
 
             {error && (
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
-                {(error as Error).message}
+                {(error as any)?.response?.data?.error || (error as Error).message}
               </div>
             )}
 

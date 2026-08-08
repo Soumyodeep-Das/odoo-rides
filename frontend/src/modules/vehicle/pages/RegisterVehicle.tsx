@@ -2,14 +2,17 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '#lib/utils'
+import { registerVehicle } from '../api'
 
 export default function RegisterVehicle() {
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
     const [formData, setFormData] = useState({
         make: '',
         carModel: '',
         color: '',
+        year: new Date().getFullYear().toString(),
         seats: '4',
         regNo: ''
     })
@@ -23,12 +26,20 @@ export default function RegisterVehicle() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError('')
         setLoading(true)
-        // Simulate API call since backend is not connected
-        setTimeout(() => {
-            setLoading(false)
+        try {
+            await registerVehicle({
+                ...formData,
+                year: Number(formData.year),
+                seats: Number(formData.seats),
+            })
             navigate('/')
-        }, 1500)
+        } catch (err: any) {
+            setError(err?.response?.data?.error || 'Failed to register vehicle. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -88,6 +99,24 @@ export default function RegisterVehicle() {
                             />
                         </div>
                         <div className="space-y-2">
+                            <label htmlFor="year" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Year</label>
+                            <input
+                                required
+                                type="number"
+                                id="year"
+                                name="year"
+                                min="1990"
+                                max={new Date().getFullYear()}
+                                value={formData.year}
+                                onChange={handleChange}
+                                placeholder="e.g. 2022"
+                                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
                             <label htmlFor="seats" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Total Seats Available</label>
                             <select
                                 required
@@ -107,22 +136,27 @@ export default function RegisterVehicle() {
                                 <option value="8">8</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="regNo" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Registration Number</label>
-                        <input
-                            required
-                            type="text"
-                            id="regNo"
-                            name="regNo"
-                            value={formData.regNo}
-                            onChange={handleChange}
-                            placeholder="e.g. WB 24 CX 4471"
-                            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium font-mono uppercase focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-                        />
+                        <div className="space-y-2">
+                            <label htmlFor="regNo" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Registration Number</label>
+                            <input
+                                required
+                                type="text"
+                                id="regNo"
+                                name="regNo"
+                                value={formData.regNo}
+                                onChange={handleChange}
+                                placeholder="e.g. WB 24 CX 4471"
+                                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium font-mono uppercase focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                            />
+                        </div>
                     </div>
                 </div>
+
+                {error && (
+                    <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+                        {error}
+                    </div>
+                )}
 
                 <div className="flex items-center gap-4">
                     <button
@@ -140,6 +174,6 @@ export default function RegisterVehicle() {
                     </Link>
                 </div>
             </form>
-        </main>
+        </main >
     )
 }

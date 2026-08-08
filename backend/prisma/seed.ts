@@ -75,6 +75,7 @@ async function main() {
       color: "White",
       seats: 4,
       regNo: "MH12AB1234",
+      year: 2020,
     },
   });
   console.log(`Created Vehicle: ${vehicle.make} ${vehicle.carModel}`);

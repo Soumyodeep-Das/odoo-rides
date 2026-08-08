@@ -2,16 +2,35 @@ import client from '#core/api/client'
 import { ENDPOINTS } from '#core/api/endpoints'
 import type { Booking, CreateBookingPayload } from './types'
 
-export async function getMyBookings(): Promise<Booking[]> {
-  const { data } = await client.get<Booking[]>(ENDPOINTS.BOOKINGS.LIST)
-  return data
+/**
+ * Fetch all bookings for a passenger.
+ * Backend: GET /api/rides/my-rides/passenger/:passengerId
+ * Returns: { success: true, data: Booking[] } where each Booking includes ride + payment
+ */
+export async function getMyBookings(passengerId: string): Promise<Booking[]> {
+  const { data } = await client.get<any>(ENDPOINTS.BOOKINGS.PASSENGER(passengerId))
+  return data?.data || []
 }
 
-export async function createBooking(payload: CreateBookingPayload): Promise<Booking> {
-  const { data } = await client.post<Booking>(ENDPOINTS.BOOKINGS.CREATE, payload)
-  return data
+/**
+ * Book seats on a ride.
+ * Backend: POST /api/rides/:rideId/book
+ * Body: { passengerId, seats, paymentMethod }
+ */
+export async function bookRide(payload: CreateBookingPayload): Promise<Booking> {
+  const { rideId, passengerId, seats, paymentMethod = 'WALLET' } = payload
+  const { data } = await client.post<any>(ENDPOINTS.BOOKINGS.BOOK(rideId), {
+    passengerId,
+    seats,
+    paymentMethod,
+  })
+  return data?.data?.booking || data?.data || data
 }
 
-export async function cancelBooking(id: number): Promise<void> {
-  await client.post(ENDPOINTS.BOOKINGS.CANCEL(id))
+/**
+ * Cancel a booking.
+ * Backend: POST /api/rides/:rideId/bookings/:bookingId/cancel
+ */
+export async function cancelBooking(rideId: string, bookingId: string): Promise<void> {
+  await client.post(ENDPOINTS.BOOKINGS.CANCEL(rideId, bookingId))
 }

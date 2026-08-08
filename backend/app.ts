@@ -6,12 +6,13 @@ import helmet from "helmet";
 import compression from "compression";
 import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
-import paymentRoutes from "./routes/payment.routes.ts";
+
 import { authenticate, requireRole } from "./middlewares/auth.middleware.js";
 import { onboardOrganisation } from "./controllers/admin/onboarding.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import rideRoutes from "./routes/ride.routes.js";
-import walletRoutes from "./routes/wallet.routes.ts";
+import vehicleRoutes from "./routes/vehicle.routes.js";
+import walletRoutes from "./routes/wallet.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +39,7 @@ apiRouter.post("/admin/onboarding", onboardOrganisation); // public — issues t
 apiRouter.use("/admin", authenticate, requireRole("ADMIN"), adminRoutes);
 apiRouter.use("/payments", paymentRoutes);
 apiRouter.use("/rides", rideRoutes);
+apiRouter.use("/vehicles", vehicleRoutes);
 apiRouter.use("/wallet", walletRoutes);
 
 app.use("/api", apiRouter);

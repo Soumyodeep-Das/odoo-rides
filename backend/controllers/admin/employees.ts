@@ -67,6 +67,8 @@ export const addEmployee = async (req: Request, res: Response) => {
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173'
     const magicLink = `${frontendUrl}/employee-onboard?token=${inviteToken}`
 
+    console.log(magicLink)
+
     // Send email async — don't block the response, but log clearly if it fails
     sendInviteEmail(employee.email, employee.name, magicLink)
       .then(() => console.log(`[mailer] Invite sent to ${employee.email}`))
@@ -86,11 +88,11 @@ export const toggleEmployeeAccess = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const employee = await prisma.user.findUnique({ where: { id } })
-    
+
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found' })
     }
-    
+
     // Status not in DB, mock toggle for frontend
     res.json({ ...mapEmployee(employee), status: 'revoked' })
   } catch (error) {

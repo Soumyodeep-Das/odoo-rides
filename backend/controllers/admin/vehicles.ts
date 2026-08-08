@@ -5,17 +5,16 @@ import { z } from 'zod'
 const addVehicleSchema = z.object({
   make: z.string(),
   model: z.string(),
-  year: z.number().int().min(1900).max(new Date().getFullYear()),
   licensePlate: z.string(),
   ownerId: z.string(),
   seats: z.number().int().min(1).max(12),
+  color: z.string().default('N/A'),
 })
 
 const mapVehicle = (v: any) => ({
   id: v.id,
   make: v.make,
   model: v.carModel,
-  year: v.year,
   licensePlate: v.regNo,
   ownerId: v.userId,
   ownerName: v.user?.name || 'Unknown',
@@ -41,7 +40,7 @@ export const getVehicles = async (req: Request, res: Response) => {
 export const addVehicle = async (req: Request, res: Response) => {
   try {
     const data = addVehicleSchema.parse(req.body)
-    
+
     const owner = await prisma.user.findUnique({ where: { id: data.ownerId } })
     if (!owner) {
       return res.status(404).json({ error: 'Owner not found' })
@@ -60,14 +59,13 @@ export const addVehicle = async (req: Request, res: Response) => {
       data: {
         make: data.make,
         carModel: data.model,
-        year: data.year,
         regNo: data.licensePlate,
         seats: data.seats,
         userId: data.ownerId,
-        color: 'Default Color',
+        color: data.color,
       }
     })
-    
+
     res.status(201).json(mapVehicle({ ...vehicle, user: owner }))
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -81,18 +79,18 @@ export const updateVehicleStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const { status } = req.body
-    
+
     const lowerStatus = status?.toLowerCase();
     if (!['pending', 'approved', 'rejected', 'inactive'].includes(lowerStatus)) {
       return res.status(400).json({ error: 'Invalid status' })
     }
 
-    const vehicle = await prisma.vehicle.update({ 
+    const vehicle = await prisma.vehicle.update({
       where: { id },
       data: { status: lowerStatus.toUpperCase() as any },
       include: { user: { select: { name: true } } }
     })
-    
+
     res.json(mapVehicle(vehicle))
   } catch (error) {
     res.status(500).json({ error: 'Failed to update vehicle status' })
