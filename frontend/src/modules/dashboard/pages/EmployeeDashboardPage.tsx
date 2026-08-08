@@ -1,8 +1,37 @@
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, PlusCircle } from 'lucide-react'
 import { cn } from '#lib/utils'
 
+import 'leaflet/dist/leaflet.css'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import L from 'leaflet'
+
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+
+// Fix missing marker icons natively in Leaflet with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+})
 export default function EmployeeDashboardPage() {
+    const [position, setPosition] = useState<[number, number] | null>(null)
+
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setPosition([pos.coords.latitude, pos.coords.longitude]),
+                () => setPosition([22.5786, 88.4729]) // Salt Lake default
+            );
+        } else {
+            setPosition([22.5786, 88.4729]);
+        }
+    }, []);
+
     return (
         <main className="container mx-auto px-4 py-8 space-y-12 max-w-5xl">
 
@@ -92,10 +121,24 @@ export default function EmployeeDashboardPage() {
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     <div className="lg:col-span-7 h-[280px] rounded-2xl border border-border bg-muted relative overflow-hidden flex items-end p-4">
-                        {/* Generic placeholder for the map to avoid using raw SVG styling */}
-                        <div className="absolute inset-0 bg-[#f4f3ed] opacity-50" />
-
-                        <div className="rounded-lg bg-primary text-primary-foreground text-xs font-mono px-3 py-1.5 z-10 font-medium">
+                        <div className="absolute inset-0 z-0 [&_.leaflet-control-attribution]:!text-[8px] [&_.leaflet-control-attribution]:!opacity-50">
+                            {position ? (
+                                <MapContainer center={position} zoom={13} scrollWheelZoom={false} className="h-full w-full z-0 font-sans">
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <Marker position={position}>
+                                        <Popup className="font-sans font-medium text-sm">
+                                            Your Location
+                                        </Popup>
+                                    </Marker>
+                                </MapContainer>
+                            ) : (
+                                <div className="h-full w-full bg-[#f4f3ed] animate-pulse" />
+                            )}
+                        </div>
+                        <div className="rounded-lg bg-primary text-primary-foreground text-xs font-mono px-3 py-1.5 z-10 font-medium shadow-md">
                             ETA 6 min · 2.1 km remaining
                         </div>
                     </div>
