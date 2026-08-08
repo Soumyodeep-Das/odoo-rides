@@ -1,10 +1,10 @@
 export const ENDPOINTS = {
   // Auth
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    ME: '/auth/me',
-    LOGOUT: '/auth/logout',
+    LOGIN:            '/auth/login',
+    ONBOARD:          '/admin/onboarding',
+    EMPLOYEE_ONBOARD: '/auth/employee-onboard',
+    ME:               '/auth/me',
   },
 
   // Rides

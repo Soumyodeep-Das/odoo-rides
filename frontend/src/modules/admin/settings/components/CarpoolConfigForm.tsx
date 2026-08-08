@@ -1,3 +1,4 @@
+import React from 'react'
 import type { CarpoolConfig } from '../types'
 
 interface CarpoolConfigFormProps {
@@ -18,6 +19,19 @@ const fields: { name: keyof CarpoolConfig; label: string; unit: string; placehol
 ]
 
 export function CarpoolConfigForm({ defaultValues, onSubmit, isPending }: CarpoolConfigFormProps) {
+  const formRef = React.useRef<HTMLFormElement>(null)
+
+  React.useEffect(() => {
+    if (formRef.current && defaultValues) {
+      fields.forEach(({ name }) => {
+        const input = formRef.current?.elements.namedItem(name) as HTMLInputElement
+        if (input && defaultValues[name] !== undefined) {
+          input.value = String(defaultValues[name] ?? '')
+        }
+      })
+    }
+  }, [defaultValues])
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -31,7 +45,7 @@ export function CarpoolConfigForm({ defaultValues, onSubmit, isPending }: Carpoo
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         {fields.map(({ name, label, unit, placeholder, min, step }) => (
           <div key={name} className="space-y-1.5">

@@ -12,6 +12,7 @@ import {
 import { useState } from 'react'
 import { cn } from '#lib/utils'
 import { APP_NAME } from '#core/config/env'
+import { useAuth } from '#core/hooks/useAuth'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',  icon: LayoutDashboard, to: '/admin/dashboard' },
@@ -24,10 +25,11 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const navigate = useNavigate()
+  const { clearAuth } = useAuth()
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
+    clearAuth()
+    navigate('/login', { replace: true })
   }
 
   return (

@@ -1,22 +1,45 @@
 import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '#core/hooks/useAuth'
-import { login, register } from './api'
-import type { LoginPayload, RegisterPayload } from './types'
+import { login, onboard, employeeOnboard } from './api'
+import type { LoginPayload, OnboardPayload, EmployeeOnboardPayload } from './types'
 
 export function useLogin() {
-  const { setToken } = useAuth()
+  const { setAuth } = useAuth()
+  const navigate = useNavigate()
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => login(payload),
-    onSuccess: ({ token }) => setToken(token),
+    onSuccess: ({ token, user }) => {
+      setAuth(token, user)
+      // Route by role
+      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/', { replace: true })
+    },
   })
 }
 
-export function useRegister() {
-  const { setToken } = useAuth()
+export function useOnboard() {
+  const { setAuth } = useAuth()
+  const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: (payload: RegisterPayload) => register(payload),
-    onSuccess: ({ token }) => setToken(token),
+    mutationFn: (payload: OnboardPayload) => onboard(payload),
+    onSuccess: ({ token, user }) => {
+      setAuth(token, user)
+      navigate('/admin/dashboard', { replace: true })
+    },
+  })
+}
+
+export function useEmployeeOnboard() {
+  const { setAuth } = useAuth()
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: (payload: EmployeeOnboardPayload) => employeeOnboard(payload),
+    onSuccess: ({ token, user }) => {
+      setAuth(token, user)
+      navigate('/', { replace: true })
+    },
   })
 }
