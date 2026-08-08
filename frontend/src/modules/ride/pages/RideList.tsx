@@ -59,7 +59,7 @@ export default function RideList() {
   if (error) return <div className="text-center text-destructive py-20 font-medium">Failed to load rides. Please try again.</div>
 
   // Display rides strictly from the backend search API
-  const filteredRides = rides || []
+  const filteredRides = Array.isArray(rides) ? rides : ((rides as any)?.data || [])
 
   return (
     <main className="lg:h-[calc(100vh-6rem)] h-[auto] min-h-[600px] flex flex-col lg:flex-row bg-card rounded-3xl overflow-hidden shadow-2xl shadow-primary/5 m-4 lg:mx-auto lg:my-8 max-w-[1400px] border border-border/50">
