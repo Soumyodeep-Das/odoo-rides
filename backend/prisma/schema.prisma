@@ -1,5 +1,5 @@
 generator client {
-    provider = "prisma-client"
+    provider = "prisma-client-js"
 }
 
 datasource db {
@@ -26,6 +26,8 @@ model User {
     vehicles  Vehicle[]
     rides     Ride[]
     bookings  Booking[]
+    payouts   Payout[]
+    wallet    Wallet?
     createdAt DateTime     @default(now())
     updatedAt DateTime     @updatedAt
 }
@@ -45,28 +47,91 @@ model Vehicle {
 }
 
 model Ride {
-    id         String     @id @default(uuid())
-    driverId   String
-    driver     User       @relation(fields: [driverId], references: [id])
-    vehicleId  String
-    vehicle    Vehicle    @relation(fields: [vehicleId], references: [id])
-    pickup     String
-    dropoff    String
-    departure  DateTime
-    totalSeats Int
-    status     RideStatus @default(SCHEDULED)
-    bookings   Booking[]
-    price      Decimal    @db.Decimal(10, 2)
-    createdAt  DateTime   @default(now())
-    updatedAt  DateTime   @updatedAt
+    id             String     @id @default(uuid())
+    driverId       String
+    driver         User       @relation(fields: [driverId], references: [id])
+    vehicleId      String
+    vehicle        Vehicle    @relation(fields: [vehicleId], references: [id])
+    pickup         String
+    dropoff        String
+    departure      DateTime
+    totalSeats     Int
+    availableSeats Int
+    status         RideStatus @default(SCHEDULED)
+    bookings       Booking[]
+    price          Decimal    @db.Decimal(10, 2)
+    createdAt      DateTime   @default(now())
+    updatedAt      DateTime   @updatedAt
 }
 
 model Booking {
-    id          String @id @default(uuid())
+    id          String        @id @default(uuid())
     passengerId String
-    passenger   User   @relation(fields: [passengerId], references: [id])
+    passenger   User          @relation(fields: [passengerId], references: [id])
     rideId      String
-    ride        Ride   @relation(fields: [rideId], references: [id])
+    ride        Ride          @relation(fields: [rideId], references: [id])
+    payment     Payment?
+    status      BookingStatus @default(CONFIRMED)
+    seats       Int           @default(1)
+    createdAt   DateTime      @default(now())
+}
+
+model Payment {
+    id        String        @id @default(uuid())
+    bookingId String        @unique
+    booking   Booking       @relation(fields: [bookingId], references: [id])
+    amount    Decimal       @db.Decimal(10, 2)
+    currency  String        @default("INR")
+    status    PaymentStatus @default(PENDING)
+    method    PaymentMethod @default(WALLET)
+
+    payout    Payout?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([status])
+    @@index([method])
+}
+
+model Payout {
+    id          String       @id @default(uuid())
+    paymentId   String       @unique
+    payment     Payment      @relation(fields: [paymentId], references: [id])
+    driverId    String
+    driver      User         @relation(fields: [driverId], references: [id])
+    amount      Decimal      @db.Decimal(10, 2)
+    status      PayoutStatus @default(PENDING)
+    processedAt DateTime?
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+
+    @@index([driverId])
+}
+
+model Wallet {
+    id           String              @id @default(uuid())
+    userId       String              @unique
+    user         User                @relation(fields: [userId], references: [id])
+    balance      Decimal             @default(0) @db.Decimal(12, 2)
+    transactions WalletTransaction[]
+    createdAt    DateTime            @default(now())
+    updatedAt    DateTime            @updatedAt
+
+    @@index([userId])
+}
+
+model WalletTransaction {
+    id          String                @id @default(uuid())
+    walletId    String
+    wallet      Wallet                @relation(fields: [walletId], references: [id])
+    type        WalletTransactionType
+    amount      Decimal               @db.Decimal(12, 2)
+    description String?
+    referenceId String? // bookingId or recharge order id
+    createdAt   DateTime              @default(now())
+
+    @@index([walletId])
+    @@index([type])
 }
 
 enum RideStatus {
@@ -79,4 +144,35 @@ enum RideStatus {
 enum Role {
     ADMIN
     EMPLOYEE
+}
+
+enum PaymentStatus {
+    PENDING
+    SUCCESS
+    FAILED
+    REFUNDED
+}
+
+enum PayoutStatus {
+    PENDING
+    PROCESSING
+    DONE
+    FAILED
+}
+
+enum BookingStatus {
+    CONFIRMED
+    CANCELLED
+}
+
+enum PaymentMethod {
+    WALLET
+    CASH
+    CARD
+    UPI
+}
+
+enum WalletTransactionType {
+    CREDIT // recharge or refund
+    DEBIT // ride payment
 }
