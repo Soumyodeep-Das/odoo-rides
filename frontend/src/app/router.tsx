@@ -11,8 +11,7 @@ const RideList = lazy(() => import('#modules/ride/pages/RideList'))
 const CreateRide = lazy(() => import('#modules/ride/pages/CreateRide'))
 const MyBookings = lazy(() => import('#modules/booking/pages/MyBookings'))
 const RegisterVehicle = lazy(() => import('#modules/vehicle/pages/RegisterVehicle'))
-
-
+const AddMoney = lazy(() => import('#modules/wallet/pages/AddMoney'))
 
 
 
@@ -43,6 +42,7 @@ const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       { path: 'vehicles/register', element: <RegisterVehicle /> },
+      { path: 'recharge', element: <AddMoney /> },
     ],
   },
 

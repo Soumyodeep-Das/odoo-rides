@@ -24,33 +24,40 @@ export const ENDPOINTS = {
     CANCEL: (id: string | number) => `/bookings/${id}/cancel`,
   },
 
+  // Wallet
+  WALLET: {
+    GET: (userId: string) => `/wallet/${userId}`,
+    CREATE_RECHARGE: '/wallet/recharge/create-order',
+    VERIFY_RECHARGE: '/wallet/recharge/verify',
+  },
+
   // Admin — Employees
   ADMIN_EMPLOYEES: {
-    LIST:          '/admin/employees',
-    CREATE:        '/admin/employees',
+    LIST: '/admin/employees',
+    CREATE: '/admin/employees',
     TOGGLE_ACCESS: (id: string) => `/admin/employees/${id}/access`,
-    DELETE:        (id: string) => `/admin/employees/${id}`,
+    DELETE: (id: string) => `/admin/employees/${id}`,
   },
 
   // Admin — Vehicles
   ADMIN_VEHICLES: {
-    LIST:          '/admin/vehicles',
-    CREATE:        '/admin/vehicles',
+    LIST: '/admin/vehicles',
+    CREATE: '/admin/vehicles',
     UPDATE_STATUS: (id: string) => `/admin/vehicles/${id}/status`,
-    DELETE:        (id: string) => `/admin/vehicles/${id}`,
+    DELETE: (id: string) => `/admin/vehicles/${id}`,
   },
 
   // Admin — Settings
   ADMIN_SETTINGS: {
-    GET:     '/admin/settings',
+    GET: '/admin/settings',
     COMPANY: '/admin/settings/company',
     CARPOOL: '/admin/settings/carpool',
   },
 
   // Admin — Reports
   ADMIN_REPORTS: {
-    SUMMARY:      '/admin/reports/summary',
+    SUMMARY: '/admin/reports/summary',
     RIDES_BY_DAY: '/admin/reports/rides-by-day',
-    DEPT_RIDES:   '/admin/reports/department-rides',
+    DEPT_RIDES: '/admin/reports/department-rides',
   },
 } as const

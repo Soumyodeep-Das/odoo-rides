@@ -221,9 +221,9 @@ export default function EmployeeDashboardPage() {
                         <div className="text-xs font-semibold opacity-70 uppercase tracking-widest">Available Balance</div>
                         <div className="text-3xl font-bold mt-2 font-mono">₹430</div>
                     </div>
-                    <button className="bg-background text-foreground rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity">
+                    <Link to="/recharge" className="bg-background text-foreground rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
                         + Recharge
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="rounded-2xl border border-border bg-card mt-4 overflow-hidden">

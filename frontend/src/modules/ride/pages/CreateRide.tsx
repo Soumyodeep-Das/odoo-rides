@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Car, ArrowLeft } from 'lucide-react'
+import { Car, ArrowLeft, MapPin } from 'lucide-react'
 import { useCreateRide } from '../hooks'
 
 import 'leaflet/dist/leaflet.css'
@@ -80,6 +80,25 @@ export default function CreateRide() {
     }
   }, []);
 
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleCurrentLocation = async () => {
+    if (!position) return;
+    setIsLocating(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position[0]}&lon=${position[1]}`);
+      const data = await res.json();
+      if (data && data.address) {
+        const shortName = data.address.suburb || data.address.neighbourhood || data.address.city || data.address.town || (data.display_name ? data.display_name.split(',')[0] : 'Current Location');
+        setOrigin(shortName);
+      }
+    } catch (e) {
+      console.error('Reverse geocoding error', e);
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   useEffect(() => {
     const fetchCoords = async (query: string, setter: (c: [number, number] | null) => void) => {
       if (!query || query.length < 3) {
@@ -157,8 +176,8 @@ export default function CreateRide() {
       {/* Left Panel: Form */}
       <div className="w-full lg:w-[500px] flex flex-col h-full bg-card z-10 shrink-0 border-r border-border overflow-y-auto scrollbar-hide">
         <div className="p-6 lg:p-8">
-          <Link to="/rides" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Rides
+          <Link to="/" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-6">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
           </Link>
 
           <h1 className="text-3xl font-extrabold tracking-tight">Offer a ride<span className="text-primary inline-block">.</span></h1>
@@ -196,8 +215,21 @@ export default function CreateRide() {
                   value={origin}
                   onChange={e => setOrigin(e.target.value)}
                   placeholder="Pickup location (e.g. Salt Lake)"
-                  className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all relative z-10"
+                  className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-10 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all relative z-10 max-w-full text-ellipsis overflow-hidden whitespace-nowrap"
                 />
+                <button
+                  onClick={handleCurrentLocation}
+                  disabled={isLocating || !position}
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-primary transition-colors z-20 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+                  title="Use current location"
+                >
+                  {isLocating ? (
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <MapPin className="w-4 h-4" />
+                  )}
+                </button>
               </div>
 
               {/* Destination */}
