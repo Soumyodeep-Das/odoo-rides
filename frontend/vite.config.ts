@@ -13,12 +13,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '#components': resolve(__dirname, 'src/components'),
-      '#lib': resolve(__dirname, 'src/lib'),
-      '#app': resolve(__dirname, 'src/app'),
-      '#core': resolve(__dirname, 'src/core'),
-      '#modules': resolve(__dirname, 'src/modules'),
-      '#styles': resolve(__dirname, 'src/styles'),
+      '#components': resolve(import.meta.dirname, 'src/components'),
+      '#lib': resolve(import.meta.dirname, 'src/lib'),
+      '#app': resolve(import.meta.dirname, 'src/app'),
+      '#core': resolve(import.meta.dirname, 'src/core'),
+      '#modules': resolve(import.meta.dirname, 'src/modules'),
+      '#styles': resolve(import.meta.dirname, 'src/styles'),
     },
   },
 })
