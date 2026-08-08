@@ -9,6 +9,9 @@ import authRoutes from "./routes/auth.js";
 import paymentRoutes from "./routes/payment.routes.ts";
 import { authenticate, requireRole } from "./middlewares/auth.middleware.js";
 import { onboardOrganisation } from "./controllers/admin/onboarding.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import rideRoutes from "./routes/ride.routes.js";
+import walletRoutes from "./routes/wallet.routes.ts";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +37,8 @@ apiRouter.use("/auth", authRoutes);
 apiRouter.post("/admin/onboarding", onboardOrganisation); // public — issues the first JWT
 apiRouter.use("/admin", authenticate, requireRole("ADMIN"), adminRoutes);
 apiRouter.use("/payments", paymentRoutes);
+apiRouter.use("/rides", rideRoutes);
+apiRouter.use("/wallet", walletRoutes);
 
 app.use("/api", apiRouter);
 

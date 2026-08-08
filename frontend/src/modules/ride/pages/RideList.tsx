@@ -21,14 +21,28 @@ L.Icon.Default.mergeOptions({
 })
 
 export default function RideList() {
-  const { data: rides, isLoading, error } = useRides()
-  const [position, setPosition] = useState<[number, number] | null>(null)
   const [searchParams, setSearchParams] = useState({
     pickup: '',
     destination: '',
     date: '',
     seats: 1
   })
+
+  const [debouncedParams, setDebouncedParams] = useState(searchParams)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedParams(searchParams), 400)
+    return () => clearTimeout(handler)
+  }, [searchParams])
+
+  const { data: rides, isLoading, error } = useRides({
+    ...(debouncedParams.pickup && { pickup: debouncedParams.pickup }),
+    ...(debouncedParams.destination && { dropoff: debouncedParams.destination }),
+    ...(debouncedParams.date && { date: debouncedParams.date }),
+    minSeats: debouncedParams.seats
+  })
+
+  const [position, setPosition] = useState<[number, number] | null>(null)
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -41,16 +55,10 @@ export default function RideList() {
     }
   }, []);
 
-  if (isLoading) return <div className="p-10 flex justify-center"><Loader /></div>
-  if (error) return <div className="text-center text-destructive py-20 font-medium">Failed to load rides. Please try again.</div>
 
-  // Client-side filtering to demonstrate search capabilities intuitively
-  const filteredRides = rides?.filter(ride => {
-    if (searchParams.pickup && !ride.origin.toLowerCase().includes(searchParams.pickup.toLowerCase())) return false;
-    if (searchParams.destination && !ride.destination.toLowerCase().includes(searchParams.destination.toLowerCase())) return false;
-    if (searchParams.seats > ride.availableSeats) return false;
-    return true;
-  }) || []
+
+  // Display rides strictly from the backend search API
+  const filteredRides = Array.isArray(rides) ? rides : ((rides as any)?.data || [])
 
   return (
     <main className="lg:h-[calc(100vh-6rem)] h-[auto] min-h-[600px] flex flex-col lg:flex-row bg-card rounded-3xl overflow-hidden shadow-2xl shadow-primary/5 m-4 lg:mx-auto lg:my-8 max-w-[1400px] border border-border/50">
@@ -129,7 +137,15 @@ export default function RideList() {
             <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-md uppercase tracking-wider">{filteredRides.length} found</span>
           </div>
 
-          {filteredRides.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 h-full">
+              <Loader />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 h-full text-destructive font-medium text-center">
+              Failed to load rides. Please try again.
+            </div>
+          ) : filteredRides.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center h-full">
               <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-5 animate-pulse">
                 <Search className="w-8 h-8 text-muted-foreground opacity-50" />
