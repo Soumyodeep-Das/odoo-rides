@@ -1,15 +1,20 @@
+import { Link } from 'react-router-dom'
 import { LoginForm } from '../components/LoginForm'
+import { AuthLayout } from '../components/AuthLayout'
 
 export default function Login() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
-        </div>
-        <LoginForm />
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Sign in to your account to continue"
+    >
+      <LoginForm />
+      <div className="mt-6 text-center text-sm text-muted-foreground">
+        Don't have an account?{' '}
+        <Link to="/register" className="font-medium text-primary hover:text-indigo-500 hover:underline transition-colors">
+          Register now
+        </Link>
       </div>
-    </main>
+    </AuthLayout>
   )
 }
