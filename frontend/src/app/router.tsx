@@ -6,6 +6,7 @@ import { Loader } from '#components/shared/Loader'
 const Login    = lazy(() => import('#modules/auth/pages/Login'))
 const Register = lazy(() => import('#modules/auth/pages/Register'))
 
+
 // ── User-facing pages ─────────────────────────────────────────────────────────
 const RideList    = lazy(() => import('#modules/ride/pages/RideList'))
 const CreateRide  = lazy(() => import('#modules/ride/pages/CreateRide'))
@@ -29,7 +30,8 @@ const router = createBrowserRouter([
       </Suspense>
     ),
     children: [
-      { index: true, element: <RideList /> },
+      { index: true, element: <Dashboard /> },
+      { path: 'rides', element: <RideList /> },
       { path: 'rides/create', element: <CreateRide /> },
       { path: 'bookings',     element: <MyBookings /> },
       { path: 'login',        element: <Login /> },
