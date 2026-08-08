@@ -37,17 +37,8 @@ const router = createBrowserRouter([
       </Suspense>
     ),
     children: [
-
-      { index: true, element: <EmpDashboard /> },
-      { path: 'rides', element: <RideList /> },
-      { path: 'rides/create', element: <CreateRide /> },
-
-      { path: 'bookings', element: <MyBookings /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
-      { path: 'vehicles/register', element: <RegisterVehicle /> },
-      { path: 'recharge', element: <AddMoney /> },
-
     ],
   },
 
@@ -74,6 +65,7 @@ const router = createBrowserRouter([
       { path: '/rides/create', element: <CreateRide /> },
       { path: '/bookings', element: <MyBookings /> },
       { path: '/vehicles/register', element: <RegisterVehicle /> },
+      { path: '/recharge', element: <AddMoney /> },
     ],
   },
 

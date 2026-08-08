@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, PlusCircle, Shield } from 'lucide-react'
+
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, PlusCircle, LogOut } from 'lucide-react'
+
+
 import { cn } from '#lib/utils'
 import { useAuth } from '#core/hooks/useAuth'
 
@@ -20,8 +23,16 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow,
 })
 export default function EmployeeDashboardPage() {
-    const { user } = useAuth()
+
+    const { user, clearAuth } = useAuth()
+    const navigate = useNavigate()
+
     const [position, setPosition] = useState<[number, number] | null>(null)
+
+    const handleLogout = () => {
+        clearAuth()
+        navigate('/login')
+    }
 
     useEffect(() => {
         if ("geolocation" in navigator) {
@@ -61,7 +72,9 @@ export default function EmployeeDashboardPage() {
                         <div className="relative h-14 min-w-[280px]">
                             <div className="absolute inset-0 animate-crossfade-1">
                                 <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Welcome back</div>
-                                <h2 className="text-2xl font-bold mt-1 whitespace-nowrap">{greeting}, <span className="text-primary">{user?.name?.split(' ')[0] || 'Rider'}</span></h2>
+
+                                <h2 className="text-2xl font-bold mt-1 whitespace-nowrap">{greeting}, <span className="text-primary">{user?.name?.split(' ')[0] || 'User'}</span></h2>
+
                             </div>
                             <div className="absolute inset-0 opacity-0 animate-crossfade-2">
                                 <div className="text-sm font-semibold text-primary uppercase tracking-wide">Your next ride</div>
@@ -273,6 +286,17 @@ export default function EmployeeDashboardPage() {
                         </div>
                     ))}
                 </div>
+            </section>
+
+            {/* ---------- Logout ---------- */}
+            <section className="pt-4 border-t border-border mt-8 flex justify-center">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-colors font-semibold text-sm uppercase tracking-wider"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                </button>
             </section>
 
         </main>
