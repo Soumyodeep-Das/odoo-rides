@@ -10,7 +10,7 @@ export default function EmployeeDashboardPage() {
             <section>
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-8">
                     <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight mb-8">Odoo Rides<span className="text-primary animate-bounce-x inline-block">.</span></h1>
+                        <h1 className="text-4xl font-extrabold tracking-tight mb-8">Odoo Rıdes<span className="text-primary animate-drive-swoosh inline-block">.</span></h1>
                         <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Good Morning</div>
                         <h2 className="text-2xl font-bold mt-1">Where are you headed?</h2>
                     </div>
