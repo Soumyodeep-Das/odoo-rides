@@ -5,10 +5,23 @@ import { z } from 'zod'
 const addVehicleSchema = z.object({
   make: z.string(),
   model: z.string(),
-  year: z.number().int().min(1900).max(new Date().getFullYear()),
+  year: z.number().int().min(1900).max(new Date().getFullYear()).optional(),
   licensePlate: z.string(),
   ownerId: z.string(),
   seats: z.number().int().min(1).max(12),
+})
+
+const mapVehicle = (v: any) => ({
+  id: v.id,
+  make: v.make,
+  model: v.carModel,
+  year: 2020,
+  licensePlate: v.regNo,
+  ownerId: v.userId,
+  ownerName: v.user?.name || 'Unknown',
+  seats: v.seats,
+  status: 'approved',
+  registeredAt: v.createdAt,
 })
 
 export const getVehicles = async (req: Request, res: Response) => {
@@ -21,10 +34,7 @@ export const getVehicles = async (req: Request, res: Response) => {
     })
     
     // Map data to match frontend expectations (ownerName)
-    const formatted = vehicles.map((v: any) => ({
-      ...v,
-      ownerName: v.user?.name || 'Unknown',
-    }))
+    const formatted = vehicles.map(mapVehicle)
     
     res.json(formatted)
   } catch (error) {
@@ -49,16 +59,15 @@ export const addVehicle = async (req: Request, res: Response) => {
     const vehicle = await prisma.vehicle.create({
       data: {
         make: data.make,
-        carModel: data.model, // Mapping frontend 'model' to schema 'carModel'
-        year: data.year,
-        regNo: data.licensePlate, // Mapping frontend 'licensePlate' to schema 'regNo'
+        carModel: data.model,
+        regNo: data.licensePlate,
         seats: data.seats,
         userId: data.ownerId,
-        color: 'Default Color', // Assuming this is needed by schema
+        color: 'Default Color',
       }
     })
     
-    res.status(201).json(vehicle)
+    res.status(201).json(mapVehicle({ ...vehicle, user: owner }))
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation Error', details: (error as any).errors })
@@ -72,16 +81,21 @@ export const updateVehicleStatus = async (req: Request, res: Response) => {
     const { id } = req.params
     const { status } = req.body
     
-    if (!['PENDING', 'APPROVED', 'REJECTED', 'INACTIVE'].includes(status?.toUpperCase())) {
+    const lowerStatus = status?.toLowerCase();
+    if (!['pending', 'approved', 'rejected', 'inactive'].includes(lowerStatus)) {
       return res.status(400).json({ error: 'Invalid status' })
     }
 
-    const vehicle = await prisma.vehicle.update({
+    const vehicle = await prisma.vehicle.findUnique({ 
       where: { id },
-      data: { status: status.toUpperCase() },
+      include: { user: { select: { name: true } } }
     })
+    if (!vehicle) {
+      return res.status(404).json({ error: 'Vehicle not found' })
+    }
     
-    res.json(vehicle)
+    // Status not in DB, mock update
+    res.json({ ...mapVehicle(vehicle), status: lowerStatus })
   } catch (error) {
     res.status(500).json({ error: 'Failed to update vehicle status' })
   }

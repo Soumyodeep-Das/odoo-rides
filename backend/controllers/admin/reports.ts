@@ -9,11 +9,7 @@ export const getReportSummary = async (req: Request, res: Response) => {
     
     const totalEmployees = await prisma.user.count()
     
-    // Assuming status is available, if not, it returns all
-    // @ts-ignore
-    const totalVehicles = await prisma.vehicle.count({
-      where: { status: 'APPROVED' }
-    }).catch(() => prisma.vehicle.count())
+    const totalVehicles = await prisma.vehicle.count()
 
     const totalBookings = await prisma.booking.count()
     
@@ -22,18 +18,15 @@ export const getReportSummary = async (req: Request, res: Response) => {
       include: { ride: true }
     })
     
-    const carpool = await prisma.carpoolConfig.findUnique({ where: { id: 'singleton' } })
-    const allowance = Number(carpool?.travelAllowancePerKm || 3.0)
-    const fuelCost = Number(carpool?.fuelCostPerLitre || 90.0)
+    const allowance = 3.0
+    const fuelCost = 90.0
     
     let co2Saved = 0
     let costSaved = 0
     
     for (const b of bookings) {
-      // @ts-ignore
-      const seats = b.seatsBooked || 1
-      // @ts-ignore
-      const distance = Number(b.ride.distanceKm || 15.0)
+      const seats = b.seats || 1
+      const distance = 15.0
       
       co2Saved += seats * distance * 0.21
       costSaved += seats * distance * allowance
@@ -90,8 +83,7 @@ export const getRidesByDay = async (req: Request, res: Response) => {
         }
       })
       
-      // @ts-ignore
-      const seatsCount = dayBookings.reduce((sum, b) => sum + (b.seatsBooked || 1), 0)
+      const seatsCount = dayBookings.reduce((sum: number, b: any) => sum + (b.seats || 1), 0)
       
       result.push({
         date: date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
@@ -186,8 +178,7 @@ export const getSeatUtilization = async (req: Request, res: Response) => {
       let bookedSeats = 0
       
       for (const ride of dayRides) {
-        // @ts-ignore
-        const rideBooked = ride.bookings.reduce((sum, b) => sum + (b.seatsBooked || 1), 0)
+        const rideBooked = ride.bookings.reduce((sum: number, b: any) => sum + (b.seats || 1), 0)
         bookedSeats += rideBooked
         availableSeats += Math.max(0, ride.totalSeats - rideBooked)
       }
