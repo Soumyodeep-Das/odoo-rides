@@ -1,11 +1,12 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '#lib/utils'
 
 interface ModalProps {
   open: boolean
   onClose: () => void
-  title: string
+  title?: string
   description?: string
   children: ReactNode
   className?: string
@@ -43,7 +44,7 @@ export function Modal({
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -56,7 +57,7 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={title ? "modal-title" : undefined}
         className={cn(
           'relative z-10 w-full rounded-2xl border border-border bg-card shadow-2xl',
           'animate-in fade-in-0 zoom-in-95 duration-200',
@@ -65,27 +66,38 @@ export function Modal({
         )}
       >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-border px-6 py-4">
-          <div>
-            <h2 id="modal-title" className="text-base font-semibold">
-              {title}
-            </h2>
-            {description && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-            )}
+        {title ? (
+          <div className="flex items-start justify-between border-b border-border px-6 py-4">
+            <div>
+              <h2 id="modal-title" className="text-base font-semibold">
+                {title}
+              </h2>
+              {description && (
+                <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
+        ) : (
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            className="absolute top-4 right-4 rounded-lg p-1.5 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground z-10"
             aria-label="Close modal"
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        )}
 
         {/* Body */}
         <div className="px-6 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
