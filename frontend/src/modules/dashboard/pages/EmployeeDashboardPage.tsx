@@ -12,8 +12,21 @@ import * as walletApi from '../../wallet/api'
 import { useQuery } from '@tanstack/react-query'
 
 import 'leaflet/dist/leaflet.css'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
+
+function MapBoundsUpdater({ coords1, coords2, coords3, coords4 }: { coords1?: any, coords2?: any, coords3?: any, coords4?: any }) {
+    const map = useMap()
+    useEffect(() => {
+        const validBounds = [coords1, coords2, coords3, coords4].filter(Boolean) as [number, number][];
+        if (validBounds.length > 1) {
+            map.fitBounds(validBounds, { padding: [50, 50] })
+        } else if (validBounds.length === 1) {
+            map.setView(validBounds[0], 15)
+        }
+    }, [coords1, coords2, coords3, coords4, map])
+    return null
+}
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
@@ -42,6 +55,13 @@ export default function EmployeeDashboardPage() {
     const activeBooking = myBookings?.[0]
 
     const [position, setPosition] = useState<[number, number] | null>(null)
+    const [driverOriginCoords, setDriverOriginCoords] = useState<[number, number] | null>(null)
+    const [driverDestCoords, setDriverDestCoords] = useState<[number, number] | null>(null)
+    const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null)
+    const [dynamicStopCoords, setDynamicStopCoords] = useState<[number, number] | null>(null)
+    const [walkingRoute, setWalkingRoute] = useState<[number, number][] | null>(null)
+    const [walkingDistance, setWalkingDistance] = useState<number | null>(null)
+    const [walkingETA, setWalkingETA] = useState<number | null>(null)
 
     const handleLogout = () => {
         clearAuth()
@@ -58,6 +78,93 @@ export default function EmployeeDashboardPage() {
             setPosition([22.5786, 88.4729]);
         }
     }, []);
+
+    useEffect(() => {
+        if (!activeBooking || activeBooking.status !== 'CONFIRMED') {
+            setDriverOriginCoords(null)
+            setDriverDestCoords(null)
+            return
+        }
+        const fetchCoords = async (query: string, setter: (c: [number, number] | null) => void) => {
+            if (!query) return;
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                const data = await res.json()
+                if (data && data.length > 0) {
+                    setter([parseFloat(data[0].lat), parseFloat(data[0].lon)])
+                }
+            } catch (e) {
+                console.error('Geocoding error', e)
+            }
+        }
+        const drivePick = activeBooking.ride?.pickup;
+        const driveDrop = activeBooking.ride?.dropoff;
+        fetchCoords(drivePick, setDriverOriginCoords)
+        fetchCoords(driveDrop, setDriverDestCoords)
+    }, [activeBooking])
+
+    useEffect(() => {
+        if (driverOriginCoords && driverDestCoords) {
+            const fetchRoute = async () => {
+                try {
+                    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${driverOriginCoords[1]},${driverOriginCoords[0]};${driverDestCoords[1]},${driverDestCoords[0]}?overview=full&geometries=geojson`)
+                    const data = await res.json()
+                    if (data.code === 'Ok' && data.routes.length > 0) {
+                        const coordinates = data.routes[0].geometry.coordinates;
+                        const latLngs = coordinates.map((c: [number, number]) => [c[1], c[0]]);
+                        setRouteCoords(latLngs as [number, number][]);
+                    }
+                } catch (e) { console.error(e) }
+            }
+            fetchRoute();
+        } else {
+            setRouteCoords(null);
+        }
+    }, [driverOriginCoords, driverDestCoords])
+
+    useEffect(() => {
+        if (routeCoords && routeCoords.length > 0 && position) {
+            let minDiff = Infinity;
+            let nearest = routeCoords[0];
+            for (const pt of routeCoords) {
+                const dLat = pt[0] - position[0];
+                const dLng = pt[1] - position[1];
+                const distSq = dLat * dLat + dLng * dLng;
+                if (distSq < minDiff) {
+                    minDiff = distSq;
+                    nearest = pt as [number, number];
+                }
+            }
+            setDynamicStopCoords(nearest);
+        } else {
+            setDynamicStopCoords(null);
+        }
+    }, [routeCoords, position])
+
+    useEffect(() => {
+        if (position && dynamicStopCoords) {
+            const fetchWalkingRoute = async () => {
+                try {
+                    const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${position[1]},${position[0]};${dynamicStopCoords[1]},${dynamicStopCoords[0]}?overview=full&geometries=geojson`)
+                    const data = await res.json()
+                    if (data.code === 'Ok' && data.routes.length > 0) {
+                        const bestRoute = data.routes[0]
+                        const coordinates = bestRoute.geometry.coordinates;
+                        const latLngs = coordinates.map((c: [number, number]) => [c[1], c[0]]);
+                        setWalkingRoute(latLngs as [number, number][]);
+                        setWalkingDistance(bestRoute.distance);
+                        setWalkingETA(Math.ceil(bestRoute.duration / 60));
+                    }
+                } catch (e) { console.error(e) }
+            }
+            fetchWalkingRoute();
+        } else {
+            setWalkingRoute(null);
+            setWalkingDistance(null);
+            setWalkingETA(null);
+        }
+    }, [position, dynamicStopCoords])
+
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
     let greeting = "Good Evening";
@@ -203,56 +310,106 @@ export default function EmployeeDashboardPage() {
                                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                     />
+                                    <MapBoundsUpdater coords1={position} coords2={dynamicStopCoords} coords3={driverOriginCoords} />
+
                                     <Marker position={position}>
                                         <Popup className="font-sans font-medium text-sm">
                                             Your Location
                                         </Popup>
                                     </Marker>
+
+                                    {dynamicStopCoords && (
+                                        <Marker position={dynamicStopCoords}>
+                                            <Popup className="font-sans font-medium text-sm">
+                                                Your Stop
+                                            </Popup>
+                                        </Marker>
+                                    )}
+
+                                    {routeCoords && (
+                                        <Polyline positions={routeCoords} pathOptions={{ color: '#000000', weight: 4, opacity: 0.15 }} />
+                                    )}
+
+                                    {walkingRoute && (
+                                        <Polyline positions={walkingRoute} pathOptions={{ color: '#000906ff', weight: 4, opacity: 0.8, dashArray: "5, 10" }} />
+                                    )}
                                 </MapContainer>
                             ) : (
                                 <div className="h-full w-full bg-[#f4f3ed] animate-pulse" />
                             )}
                         </div>
-                        <div className="rounded-lg bg-primary text-primary-foreground text-xs font-mono px-3 py-1.5 z-10 font-medium shadow-md">
-                            ETA 6 min · 2.1 km remaining
-                        </div>
+                        {walkingETA !== null && walkingDistance !== null ? (
+                            <div className="rounded-lg bg-primary text-primary-foreground text-xs font-mono px-3 py-1.5 z-10 font-medium shadow-md transition-all duration-300">
+                                WALK {walkingETA} min · {(walkingDistance / 1000).toFixed(1)} km to stop
+                            </div>
+                        ) : activeBooking && activeBooking.status === 'CONFIRMED' ? (
+                            <div className="rounded-lg bg-muted text-muted-foreground text-xs font-mono px-3 py-1.5 z-10 font-medium shadow-md">
+                                Computing route...
+                            </div>
+                        ) : null}
                     </div>
 
-                    <div className="lg:col-span-5 rounded-2xl border border-border bg-card p-6 flex flex-col justify-between">
+                    {activeBooking && <div className="lg:col-span-5 rounded-2xl border border-border bg-card p-6 flex flex-col justify-between">
                         <div className="mb-6 relative flex justify-between px-2 pt-2">
                             <div className="absolute top-4 left-6 right-6 h-0.5 bg-border z-0"></div>
 
-                            <div className="flex flex-col items-center gap-2.5 z-10 flex-1">
-                                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-card" />
-                                <span className="text-[10px] uppercase font-bold text-foreground">Booked</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2.5 z-10 flex-1">
-                                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-card" />
-                                <span className="text-[10px] uppercase font-bold text-foreground">Started</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2.5 z-10 flex-1">
-                                <div className="w-3.5 h-3.5 rounded-full bg-amber-500 ring-4 ring-card" />
-                                <span className="text-[10px] uppercase font-bold text-foreground">Transit</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2.5 z-10 flex-1">
-                                <div className="w-3.5 h-3.5 rounded-full bg-muted border-2 border-border" />
-                                <span className="text-[10px] uppercase font-medium text-muted-foreground mt-0.5">Done</span>
-                            </div>
+                            {[
+                                {
+                                    label: (activeBooking.status === 'CANCELLED' || activeBooking.ride?.status === 'CANCELED') ? 'Cancelled' : 'Booked',
+                                    state: activeBooking.status === 'CANCELLED' || activeBooking.ride?.status === 'CANCELED' ? 'error' : 'done'
+                                },
+                                {
+                                    label: 'Started',
+                                    state: activeBooking.status === 'CANCELLED' || activeBooking.ride?.status === 'CANCELED' ? 'future'
+                                        : (activeBooking.ride?.status === 'ACTIVE' || activeBooking.ride?.status === 'COMPLETED') ? 'done' : 'future'
+                                },
+                                {
+                                    label: 'Transit',
+                                    state: activeBooking.status === 'CANCELLED' || activeBooking.ride?.status === 'CANCELED' ? 'future'
+                                        : activeBooking.ride?.status === 'COMPLETED' ? 'done'
+                                            : activeBooking.ride?.status === 'ACTIVE' ? 'current' : 'future'
+                                },
+                                {
+                                    label: 'Done',
+                                    state: activeBooking.status === 'CANCELLED' || activeBooking.ride?.status === 'CANCELED' ? 'future'
+                                        : activeBooking.ride?.status === 'COMPLETED' ? 'done' : 'future'
+                                }
+                            ].map((node, i) => (
+                                <div key={i} className="flex flex-col items-center gap-2.5 z-10 flex-1">
+                                    <div className={cn(
+                                        "w-3.5 h-3.5 rounded-full transition-colors",
+                                        node.state === 'done' ? "bg-emerald-500 ring-4 ring-card" :
+                                            node.state === 'current' ? "bg-amber-500 ring-4 ring-card animate-pulse" :
+                                                node.state === 'error' ? "bg-destructive ring-4 ring-card" :
+                                                    "bg-muted border-2 border-border"
+                                    )} />
+                                    <span className={cn(
+                                        "text-[10px] uppercase font-bold mt-0.5 transition-colors",
+                                        node.state === 'done' || node.state === 'current' ? "text-foreground" :
+                                            node.state === 'error' ? "text-destructive" :
+                                                "text-muted-foreground font-medium"
+                                    )}>
+                                        {node.label}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="flex items-center gap-3 pt-5 border-t border-border mt-auto">
-                            <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-600 flex items-center justify-center font-bold text-xs uppercase">
-                                AS
+                            <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                                {activeBooking?.ride?.driver?.name?.charAt(0) || '?'}
                             </div>
-                            <div>
-                                <div className="font-semibold text-sm">Ananya Sen</div>
-                                <div className="text-xs text-muted-foreground mt-0.5">Honda City · WB 24 CX 4471</div>
+                            <div className="min-w-0">
+                                <div className="font-semibold text-sm truncate">{activeBooking?.ride?.driver?.name || 'Unknown'}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    {activeBooking?.ride?.vehicle ? `${activeBooking.ride.vehicle.make} ${activeBooking.ride.vehicle.carModel} · ${activeBooking.ride.vehicle.regNo}` : 'Vehicle Unknown'}
+                                </div>
                             </div>
-                            <button className="ml-auto rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors uppercase tracking-wide">
+                            <button className="ml-auto rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors uppercase tracking-wide shrink-0">
                                 Call
                             </button>
                         </div>
-                    </div>
+                    </div>}
                 </div>
             </section>
 
@@ -329,18 +486,30 @@ export default function EmployeeDashboardPage() {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Reports</h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {[
-                        { label: 'Total trips', val: '42', sub: 'This month' },
-                        { label: 'Distance', val: '318 km', sub: 'This month' },
-                        { label: 'Cost per km', val: '₹4.20', sub: 'Average' },
-                        { label: 'Fuel saved', val: '21 L', sub: 'Estimated' },
-                    ].map((r, i) => (
-                        <div key={i} className="rounded-2xl border border-border bg-card p-5">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{r.label}</div>
-                            <div className="text-2xl font-bold mt-2">{r.val}</div>
-                            <div className="text-xs text-muted-foreground mt-1 font-medium">{r.sub}</div>
-                        </div>
-                    ))}
+                    {(() => {
+                        const orgSettings = (user as any)?.org?.settings || (user as any)?.orgSettings;
+                        const costPerKm = orgSettings?.costPerKm ?? 4.5;
+                        const activeAndDoneBookings = myBookings?.filter((b: any) => b.ride?.status === 'COMPLETED' || b.status === 'CONFIRMED') || [];
+                        const totalTrips = activeAndDoneBookings.length;
+                        const totalDistance = activeAndDoneBookings.reduce((acc: number, b: any) => {
+                            const price = Number(b.ride?.price) || 0;
+                            return acc + (price / costPerKm);
+                        }, 0);
+                        const fuelSaved = totalDistance / 15;
+
+                        return [
+                            { label: 'Total trips', val: `${totalTrips}`, sub: 'Lifetime' },
+                            { label: 'Distance', val: `${Math.round(totalDistance)} km`, sub: 'Lifetime' },
+                            { label: 'Cost per km', val: `₹${costPerKm.toFixed(2)}`, sub: 'Current Org Rate' },
+                            { label: 'Fuel saved', val: `${Math.round(fuelSaved)} L`, sub: 'Estimated' },
+                        ].map((r, i) => (
+                            <div key={i} className="rounded-2xl border border-border bg-card p-5">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{r.label}</div>
+                                <div className="text-2xl font-bold mt-2">{r.val}</div>
+                                <div className="text-xs text-muted-foreground mt-1 font-medium">{r.sub}</div>
+                            </div>
+                        ))
+                    })()}
                 </div>
             </section>
 
