@@ -1,6 +1,6 @@
 import { type Request, type Response } from "express";
 import crypto from "crypto";
-import razorpay from "../lib/razorpay.ts";
+import getRazorpay from "../lib/razorpay.ts";
 
 export const createRazorpayOrder = async (req: Request, res: Response) => {
   try {
@@ -16,6 +16,7 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
       receipt,
     };
 
+    const razorpay = getRazorpay();
     const order = await razorpay.orders.create(options);
 
     res.status(200).json({

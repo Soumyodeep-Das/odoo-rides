@@ -187,7 +187,6 @@ export default function CreateRide() {
     const distanceInKm = routeMetrics ? (routeMetrics.distance / 1000) : 0;
     doCreate(
       {
-        driverId: user.id,
         vehicleId,
         pickup: origin,
         dropoff: destination,

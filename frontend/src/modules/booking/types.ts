@@ -31,7 +31,6 @@ export interface Booking {
 /** Payload for POST /api/rides/:rideId/book */
 export interface CreateBookingPayload {
   rideId: string
-  passengerId: string
   seats: number
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'WALLET'
 }

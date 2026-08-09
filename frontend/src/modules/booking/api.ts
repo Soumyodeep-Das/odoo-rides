@@ -17,14 +17,13 @@ export async function getMyBookings(passengerId: string): Promise<Booking[]> {
  * Backend: POST /api/rides/:rideId/book
  * Body: { passengerId, seats, paymentMethod }
  */
-export async function bookRide(payload: CreateBookingPayload): Promise<Booking> {
-  const { rideId, passengerId, seats, paymentMethod = 'WALLET' } = payload
+export async function bookRide(payload: CreateBookingPayload): Promise<any> {
+  const { rideId, seats, paymentMethod = 'WALLET' } = payload
   const { data } = await client.post<any>(ENDPOINTS.BOOKINGS.BOOK(rideId), {
-    passengerId,
     seats,
     paymentMethod,
   })
-  return data?.data?.booking || data?.data || data
+  return data?.data
 }
 
 /**

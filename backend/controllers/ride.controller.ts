@@ -7,11 +7,12 @@ import {
   PaymentMethod,
   WalletTransactionType,
 } from "@prisma/client";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../lib/prisma.js";
+import crypto from "crypto";
+import getRazorpay from "../lib/razorpay.js";
 
 // Zod Validation Schemas
 const createRideSchema = z.object({
-  driverId: z.uuid("Invalid driver ID format"),
   vehicleId: z.uuid("Invalid vehicle ID format"),
   pickup: z.string().min(2, "Pickup location is required"),
   dropoff: z.string().min(2, "Dropoff location is required"),
@@ -38,7 +39,6 @@ const updateRideStatusSchema = z.object({
 });
 
 const bookRideSchema = z.object({
-  passengerId: z.uuid("Invalid passenger ID format"),
   seats: z.number().int().min(1, "Must book at least 1 seat").default(1),
   paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.WALLET),
 });
@@ -50,6 +50,7 @@ const bookRideSchema = z.object({
 export const createRide = async (req: Request, res: Response) => {
   try {
     const data = createRideSchema.parse(req.body);
+    const driverId = (req as any).user.id;
 
     const departureDate = new Date(data.departure);
     if (departureDate <= new Date()) {
@@ -77,10 +78,16 @@ export const createRide = async (req: Request, res: Response) => {
     if (!vehicle) {
       return res.status(404).json({ error: "Vehicle not found" });
     }
-    if (vehicle.userId !== data.driverId) {
+    if (vehicle.userId !== driverId) {
       return res
         .status(400)
         .json({ error: "Vehicle does not belong to the driver" });
+    }
+    
+    if (vehicle.status !== "APPROVED") {
+      return res
+        .status(400)
+        .json({ error: "Vehicle must be APPROVED before it can be used for rides" });
     }
 
     // Check vehicle seats capacity
@@ -92,7 +99,7 @@ export const createRide = async (req: Request, res: Response) => {
 
     const ride = await prisma.ride.create({
       data: {
-        driverId: data.driverId,
+        driverId: driverId,
         vehicleId: data.vehicleId,
         pickup: data.pickup,
         dropoff: data.dropoff,
@@ -503,10 +510,11 @@ export const bookRide = async (req: Request, res: Response) => {
   try {
     const { id: rideId } = req.params;
     const data = bookRideSchema.parse(req.body);
+    const passengerId = (req as any).user.id;
 
     // Verify passenger user exists
     const passenger = await prisma.user.findUnique({
-      where: { id: data.passengerId },
+      where: { id: passengerId },
       include: { wallet: true },
     });
     if (!passenger) {
@@ -528,7 +536,7 @@ export const bookRide = async (req: Request, res: Response) => {
       });
     }
 
-    if (ride.driverId === data.passengerId) {
+    if (ride.driverId === passengerId) {
       return res
         .status(400)
         .json({ error: "Drivers cannot book their own ride" });
@@ -540,22 +548,61 @@ export const bookRide = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if passenger already has a CONFIRMED booking for this ride
+    // Check if passenger already has a booking for this ride
     const existingBooking = await prisma.booking.findFirst({
       where: {
         rideId,
-        passengerId: data.passengerId,
-        status: BookingStatus.CONFIRMED,
+        passengerId: passengerId,
+        status: { not: BookingStatus.CANCELED },
       },
+      include: { payment: true },
     });
 
     if (existingBooking) {
-      return res.status(400).json({
-        error: "Passenger already has an active booking for this ride",
-      });
+      // If payment is pending/failed or missing (abandoned checkout), delete the old booking so they can try again
+      const isPendingOrFailed =
+        !existingBooking.payment ||
+        existingBooking.payment.status === PaymentStatus.PENDING ||
+        existingBooking.payment.status === PaymentStatus.FAILED;
+
+      if (isPendingOrFailed) {
+        const deleteOps: any[] = [];
+        if (existingBooking.payment) {
+          deleteOps.push(prisma.payment.delete({ where: { id: existingBooking.payment.id } }));
+        }
+        deleteOps.push(prisma.booking.delete({ where: { id: existingBooking.id } }));
+        deleteOps.push(
+          prisma.ride.update({
+            where: { id: rideId },
+            data: { availableSeats: { increment: existingBooking.seats } },
+          }),
+        );
+        await prisma.$transaction(deleteOps);
+      } else {
+        return res.status(400).json({
+          error: "Passenger already has an active booking for this ride",
+        });
+      }
     }
 
     const totalAmount = Number(ride.price) * data.seats;
+
+    let razorpayOrderDetails = null;
+    if (data.paymentMethod === PaymentMethod.UPI || data.paymentMethod === PaymentMethod.CARD) {
+      const amountInPaise = Math.round(totalAmount * 100);
+      const razorpay = getRazorpay();
+      const order = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: "INR",
+        receipt: `booking_${rideId.substring(0, 8)}_${Date.now()}`,
+      });
+      razorpayOrderDetails = {
+        orderId: order.id,
+        amount: amountInPaise,
+        currency: order.currency,
+        keyId: process.env.RAZORPAY_KEY_ID,
+      };
+    }
 
     // Execute atomic transaction for booking & payment creation
     const result = await prisma.$transaction(async (tx: any) => {
@@ -569,7 +616,7 @@ export const bookRide = async (req: Request, res: Response) => {
       const booking = await tx.booking.create({
         data: {
           rideId,
-          passengerId: data.passengerId,
+          passengerId: passengerId,
           seats: data.seats,
           status: BookingStatus.CONFIRMED,
         },
@@ -581,7 +628,7 @@ export const bookRide = async (req: Request, res: Response) => {
         let wallet = passenger.wallet;
         if (!wallet) {
           wallet = await tx.wallet.create({
-            data: { userId: data.passengerId, balance: 0 },
+            data: { userId: passengerId, balance: 0 },
           });
         }
 
@@ -608,8 +655,10 @@ export const bookRide = async (req: Request, res: Response) => {
         });
 
         paymentStatus = PaymentStatus.SUCCESS;
+      } else if (data.paymentMethod === PaymentMethod.CASH) {
+        paymentStatus = PaymentStatus.PENDING;
       } else {
-        paymentStatus = PaymentStatus.SUCCESS;
+        paymentStatus = PaymentStatus.PENDING;
       }
 
       // 4. Create Payment record
@@ -629,7 +678,10 @@ export const bookRide = async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       message: "Ride booked successfully",
-      data: result,
+      data: {
+        ...result,
+        razorpayOrder: razorpayOrderDetails,
+      }
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -844,5 +896,38 @@ export const getPassengerRides = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ error: error.message || "Failed to fetch passenger rides" });
+  }
+};
+
+/**
+ * 12. Verify Razorpay Payment for Booking
+ * POST /api/rides/:id/bookings/:bookingId/verify
+ */
+export const verifyBookingPayment = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) return res.status(500).json({ error: "Razorpay secret not configured" });
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: "Invalid payment signature" });
+    }
+
+    const payment = await prisma.payment.update({
+      where: { bookingId },
+      data: { status: PaymentStatus.SUCCESS },
+    });
+
+    return res.status(200).json({ success: true, message: "Payment verified successfully", data: payment });
+  } catch (error: any) {
+    console.error("Error verifying booking payment:", error);
+    return res.status(500).json({ error: "Failed to verify payment" });
   }
 };

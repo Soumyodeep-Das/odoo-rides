@@ -1,6 +1,6 @@
 import { type Request, type Response } from "express";
 import crypto from "crypto";
-import razorpay from "../lib/razorpay.ts";
+import getRazorpay from "../lib/razorpay.ts";
 import { prisma } from "../lib/prisma.ts";
 
 /**
@@ -20,6 +20,7 @@ export const createRechargeOrder = async (req: Request, res: Response) => {
 
     const amountInPaise = Math.round(Number(amount) * 100); // Razorpay expects paise
 
+    const razorpay = getRazorpay();
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",

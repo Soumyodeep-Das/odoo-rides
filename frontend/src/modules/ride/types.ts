@@ -34,7 +34,6 @@ export interface Ride {
 }
 
 export interface CreateRidePayload {
-  driverId: string
   vehicleId: string
   pickup: string
   dropoff: string
