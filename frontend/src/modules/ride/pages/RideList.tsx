@@ -10,17 +10,16 @@ import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
-function MapUpdater({ originCoords, destCoords }: { originCoords: [number, number] | null, destCoords: [number, number] | null }) {
+function MapBoundsUpdater({ coords1, coords2, coords3, coords4 }: { coords1: any, coords2: any, coords3: any, coords4: any }) {
   const map = useMap()
   useEffect(() => {
-    if (originCoords && destCoords) {
-      map.fitBounds([originCoords, destCoords], { padding: [50, 50] })
-    } else if (originCoords) {
-      map.setView(originCoords, 13)
-    } else if (destCoords) {
-      map.setView(destCoords, 13)
+    const validBounds = [coords1, coords2, coords3, coords4].filter(Boolean) as [number, number][];
+    if (validBounds.length > 1) {
+      map.fitBounds(validBounds, { padding: [50, 50] })
+    } else if (validBounds.length === 1) {
+      map.setView(validBounds[0], 13)
     }
-  }, [originCoords, destCoords, map])
+  }, [coords1, coords2, coords3, coords4, map])
   return null
 }
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -58,6 +57,15 @@ const bikeIcon = L.divIcon({
   iconAnchor: [16, 16],
 })
 
+const walkIcon = L.divIcon({
+  html: `<div style="background-color: #0ea5e9; padding: 6px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;">
+           <div style="width: 8px; height: 8px; background-color: white; border-radius: 50%;"></div>
+         </div>`,
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+})
+
 export default function RideList() {
   const [urlParams] = useSearchParams()
   const [searchParams, setSearchParams] = useState({
@@ -69,24 +77,8 @@ export default function RideList() {
 
   const [debouncedParams, setDebouncedParams] = useState(searchParams)
 
-  const [selectedRide, setSelectedRide] = useState<any | null>(null)
-  const [originCoords, setOriginCoords] = useState<[number, number] | null>(null)
-  const [destCoords, setDestCoords] = useState<[number, number] | null>(null)
-  const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null)
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedParams(searchParams), 400)
-    return () => clearTimeout(handler)
-  }, [searchParams])
-
-  const { data: rides, isLoading, error } = useRides({
-    ...(debouncedParams.pickup && { pickup: debouncedParams.pickup }),
-    ...(debouncedParams.destination && { dropoff: debouncedParams.destination }),
-    ...(debouncedParams.date && { date: debouncedParams.date }),
-    minSeats: debouncedParams.seats
-  })
-
   const [position, setPosition] = useState<[number, number] | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -98,8 +90,6 @@ export default function RideList() {
       setPosition([22.5786, 88.4729]);
     }
   }, []);
-
-  const [isLocating, setIsLocating] = useState(false);
 
   const handleCurrentLocation = async () => {
     if (!position) return;
@@ -117,6 +107,50 @@ export default function RideList() {
       setIsLocating(false);
     }
   };
+
+  const [selectedRide, setSelectedRide] = useState<any | null>(null)
+  const [originCoords, setOriginCoords] = useState<[number, number] | null>(null)
+  const [destCoords, setDestCoords] = useState<[number, number] | null>(null)
+  const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null)
+
+  const [userOriginCoords, setUserOriginCoords] = useState<[number, number] | null>(null)
+  const [userDestCoords, setUserDestCoords] = useState<[number, number] | null>(null)
+  const [dynamicPickupCoords, setDynamicPickupCoords] = useState<[number, number] | null>(null)
+  const [dynamicDropCoords, setDynamicDropCoords] = useState<[number, number] | null>(null)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedParams(searchParams), 400)
+    return () => clearTimeout(handler)
+  }, [searchParams])
+
+  useEffect(() => {
+    const fetchUserCoords = async (query: string, setter: (c: [number, number] | null) => void) => {
+      if (!query || query.length < 3) return setter(null);
+      try {
+        let viewboxParam = '';
+        if (position) {
+          viewboxParam = `&viewbox=${position[1] - 1},${position[0] + 1},${position[1] + 1},${position[0] - 1}`;
+        }
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}${viewboxParam}`)
+        const data = await res.json()
+        if (data && data.length > 0) setter([parseFloat(data[0].lat), parseFloat(data[0].lon)])
+      } catch (e) {
+        console.error('Geocoding error', e)
+      }
+    }
+    const timer = setTimeout(() => {
+      fetchUserCoords(debouncedParams.pickup, setUserOriginCoords)
+      fetchUserCoords(debouncedParams.destination, setUserDestCoords)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [debouncedParams.pickup, debouncedParams.destination, position])
+
+  const { data: rides, isLoading, error } = useRides({
+    ...(debouncedParams.pickup && { pickup: debouncedParams.pickup }),
+    ...(debouncedParams.destination && { dropoff: debouncedParams.destination }),
+    ...(debouncedParams.date && { date: debouncedParams.date }),
+    minSeats: debouncedParams.seats
+  })
 
   useEffect(() => {
     if (!selectedRide) {
@@ -167,6 +201,34 @@ export default function RideList() {
       setRouteCoords(null);
     }
   }, [originCoords, destCoords])
+
+  useEffect(() => {
+    if (routeCoords && routeCoords.length > 0) {
+      const getNearest = (point: [number, number], route: [number, number][]) => {
+        let minDiff = Infinity;
+        let nearest = route[0];
+        for (const pt of route) {
+          const dLat = pt[0] - point[0];
+          const dLng = pt[1] - point[1];
+          const distSq = dLat * dLat + dLng * dLng;
+          if (distSq < minDiff) {
+            minDiff = distSq;
+            nearest = pt;
+          }
+        }
+        return nearest;
+      }
+
+      if (userOriginCoords) setDynamicPickupCoords(getNearest(userOriginCoords, routeCoords))
+      else setDynamicPickupCoords(null)
+
+      if (userDestCoords) setDynamicDropCoords(getNearest(userDestCoords, routeCoords))
+      else setDynamicDropCoords(null)
+    } else {
+      setDynamicPickupCoords(null)
+      setDynamicDropCoords(null)
+    }
+  }, [routeCoords, userOriginCoords, userDestCoords])
 
   // Display rides strictly from the backend search API
   const filteredRides = Array.isArray(rides) ? rides : ((rides as any)?.data || [])
@@ -308,23 +370,50 @@ export default function RideList() {
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <MapUpdater originCoords={originCoords} destCoords={destCoords} />
-              {originCoords ? (
-                <Marker position={originCoords} icon={selectedRide?.vehicle?.seats <= 2 ? bikeIcon : carIcon}>
-                  <Popup className="font-sans font-medium text-sm rounded-xl">Pickup Location</Popup>
+              <MapBoundsUpdater coords1={originCoords} coords2={destCoords} coords3={userOriginCoords} coords4={userDestCoords} />
+
+              {/* Dotted lines for walking */}
+              {userOriginCoords && dynamicPickupCoords && (
+                <Polyline positions={[userOriginCoords, dynamicPickupCoords]} pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7, dashArray: "5, 10" }} />
+              )}
+              {userDestCoords && dynamicDropCoords && (
+                <Polyline positions={[dynamicDropCoords, userDestCoords]} pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7, dashArray: "5, 10" }} />
+              )}
+
+              {/* Computed Dynamic Stops */}
+              {dynamicPickupCoords && (
+                <Marker position={dynamicPickupCoords} icon={selectedRide?.vehicle?.seats <= 2 ? bikeIcon : carIcon}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Dynamic Pickup Stop</Popup>
                 </Marker>
-              ) : (
+              )}
+              {dynamicDropCoords && (
+                <Marker position={dynamicDropCoords}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Dynamic Drop-off Stop</Popup>
+                </Marker>
+              )}
+
+              {/* User Original Input Markers */}
+              {userOriginCoords && (
+                <Marker position={userOriginCoords} icon={walkIcon}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Your starting point</Popup>
+                </Marker>
+              )}
+              {userDestCoords && (
+                <Marker position={userDestCoords} icon={walkIcon}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Your destination point</Popup>
+                </Marker>
+              )}
+
+              {/* Map driver's exact journey behind everything */}
+              {routeCoords && (
+                <Polyline positions={routeCoords} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 0.5 }} />
+              )}
+
+              {/* Fallback to user location if absolutely nothing is mapped */}
+              {!userOriginCoords && !originCoords && (
                 <Marker position={position} icon={carIcon}>
                   <Popup className="font-sans font-medium text-sm rounded-xl">Your Location</Popup>
                 </Marker>
-              )}
-              {destCoords && (
-                <Marker position={destCoords}>
-                  <Popup className="font-sans font-medium text-sm rounded-xl">Destination</Popup>
-                </Marker>
-              )}
-              {routeCoords && (
-                <Polyline positions={routeCoords} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 0.8 }} />
               )}
             </MapContainer>
           ) : (

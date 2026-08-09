@@ -22,6 +22,7 @@ function safeUser(user: {
   orgId: string
   avatarUrl: string | null
   createdAt: Date
+  org?: { settings?: { costPerKm: number } | null }
 }) {
   return {
     id: user.id,
@@ -32,6 +33,7 @@ function safeUser(user: {
     orgId: user.orgId,
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
+    orgSettings: user.org?.settings ? { costPerKm: user.org.settings.costPerKm } : undefined,
   }
 }
 
@@ -41,7 +43,10 @@ export const login = async (req: Request, res: Response) => {
   try {
     const data = loginSchema.parse(req.body)
 
-    const user = await prisma.user.findUnique({ where: { email: data.email } })
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+      include: { org: { include: { settings: true } } }
+    })
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' })
     }
@@ -68,7 +73,10 @@ export const login = async (req: Request, res: Response) => {
 
 export const getMe = async (req: Request, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id } })
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      include: { org: { include: { settings: true } } }
+    })
     if (!user) return res.status(404).json({ error: 'User not found' })
     res.json(safeUser(user))
   } catch {
@@ -128,6 +136,7 @@ export const employeeOnboard = async (req: Request, res: Response) => {
         phone: phone.trim(),
         ...(avatarUrl ? { avatarUrl } : {}),
       },
+      include: { org: { include: { settings: true } } }
     })
 
     const authToken = signToken({ sub: updated.id, role: updated.role, orgId: updated.orgId })
