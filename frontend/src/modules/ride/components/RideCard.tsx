@@ -40,10 +40,10 @@ export function RideCard({ ride }: RideCardProps) {
   const [seats, setSeats] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'CASH' | 'CARD' | 'UPI'>('CASH')
   const [booked, setBooked] = useState(false)
-  const [modalState, setModalState] = useState<{ open: boolean, title: string, message: string, type: 'success' | 'error' }>({ open: false, title: '', message: '', type: 'success' })
+  const [modalState, setModalState] = useState<{ open: boolean, title: string, message: string, type: 'success' | 'error', action?: { label: string, onClick: () => void } }>({ open: false, title: '', message: '', type: 'success' })
 
-  const showModal = (title: string, message: string, type: 'success' | 'error' = 'success') => {
-    setModalState({ open: true, title, message, type })
+  const showModal = (title: string, message: string, type: 'success' | 'error' = 'success', action?: { label: string, onClick: () => void }) => {
+    setModalState({ open: true, title, message, type, action })
   }
   const closeModal = () => setModalState(prev => ({ ...prev, open: false }))
 
@@ -111,7 +111,10 @@ export function RideCard({ ride }: RideCardProps) {
         onError: (err: any) => {
           const msg = err?.response?.data?.error || err.message || ''
           if (msg.includes('Insufficient wallet balance')) {
-            navigate('/recharge')
+            showModal('Insufficient Balance', msg, 'error', {
+              label: 'Recharge Wallet',
+              onClick: () => navigate('/recharge')
+            })
           } else {
             showModal('Booking Failed', msg || 'An error occurred while booking the ride.', 'error')
           }
@@ -247,12 +250,33 @@ export function RideCard({ ride }: RideCardProps) {
           )}
           <h3 className="text-lg font-bold mb-2">{modalState.title}</h3>
           <p className="text-sm text-muted-foreground">{modalState.message}</p>
-          <button
-            onClick={closeModal}
-            className="mt-6 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all"
-          >
-            Okay
-          </button>
+          
+          {modalState.action ? (
+            <div className="flex gap-3 w-full mt-6">
+              <button
+                onClick={closeModal}
+                className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-foreground hover:bg-muted transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  closeModal();
+                  modalState.action?.onClick();
+                }}
+                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all"
+              >
+                {modalState.action.label}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all"
+            >
+              Okay
+            </button>
+          )}
         </div>
       </Modal>
     </article>
