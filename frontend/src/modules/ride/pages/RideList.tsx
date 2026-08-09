@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Calendar, Users, MapPin, ArrowLeft } from 'lucide-react'
 import { useRides } from '../hooks'
 import { RideCard } from '../components/RideCard'
@@ -21,11 +21,12 @@ L.Icon.Default.mergeOptions({
 })
 
 export default function RideList() {
+  const [urlParams] = useSearchParams()
   const [searchParams, setSearchParams] = useState({
-    pickup: '',
-    destination: '',
-    date: '',
-    seats: 1
+    pickup: urlParams.get('pickup') || '',
+    destination: urlParams.get('destination') || '',
+    date: urlParams.get('date') || '',
+    seats: parseInt(urlParams.get('seats') || '1')
   })
 
   const [debouncedParams, setDebouncedParams] = useState(searchParams)
