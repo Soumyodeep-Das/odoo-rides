@@ -118,6 +118,9 @@ export default function RideList() {
   const [dynamicPickupCoords, setDynamicPickupCoords] = useState<[number, number] | null>(null)
   const [dynamicDropCoords, setDynamicDropCoords] = useState<[number, number] | null>(null)
 
+  const [dynamicPickupRoute, setDynamicPickupRoute] = useState<[number, number][] | null>(null)
+  const [dynamicDropRoute, setDynamicDropRoute] = useState<[number, number][] | null>(null)
+
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedParams(searchParams), 400)
     return () => clearTimeout(handler)
@@ -229,6 +232,48 @@ export default function RideList() {
       setDynamicDropCoords(null)
     }
   }, [routeCoords, userOriginCoords, userDestCoords])
+
+  useEffect(() => {
+    if (userOriginCoords && dynamicPickupCoords) {
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${userOriginCoords[1]},${userOriginCoords[0]};${dynamicPickupCoords[1]},${dynamicPickupCoords[0]}?overview=full&geometries=geojson`)
+          const data = await res.json()
+          if (data.code === 'Ok' && data.routes.length > 0) {
+            const coordinates = data.routes[0].geometry.coordinates;
+            const latLngs = coordinates.map((c: [number, number]) => [c[1], c[0]]);
+            setDynamicPickupRoute(latLngs);
+          }
+        } catch (e) {
+          console.error('Routing error', e)
+        }
+      }
+      fetchRoute();
+    } else {
+      setDynamicPickupRoute(null);
+    }
+  }, [userOriginCoords, dynamicPickupCoords])
+
+  useEffect(() => {
+    if (userDestCoords && dynamicDropCoords) {
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${dynamicDropCoords[1]},${dynamicDropCoords[0]};${userDestCoords[1]},${userDestCoords[0]}?overview=full&geometries=geojson`)
+          const data = await res.json()
+          if (data.code === 'Ok' && data.routes.length > 0) {
+            const coordinates = data.routes[0].geometry.coordinates;
+            const latLngs = coordinates.map((c: [number, number]) => [c[1], c[0]]);
+            setDynamicDropRoute(latLngs);
+          }
+        } catch (e) {
+          console.error('Routing error', e)
+        }
+      }
+      fetchRoute();
+    } else {
+      setDynamicDropRoute(null);
+    }
+  }, [userDestCoords, dynamicDropCoords])
 
   // Display rides strictly from the backend search API
   const filteredRides = Array.isArray(rides) ? rides : ((rides as any)?.data || [])
@@ -372,12 +417,12 @@ export default function RideList() {
               />
               <MapBoundsUpdater coords1={originCoords} coords2={destCoords} coords3={userOriginCoords} coords4={userDestCoords} />
 
-              {/* Dotted lines for walking */}
+              {/* Dotted lines for walking/connection */}
               {userOriginCoords && dynamicPickupCoords && (
-                <Polyline positions={[userOriginCoords, dynamicPickupCoords]} pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7, dashArray: "5, 10" }} />
+                <Polyline positions={dynamicPickupRoute || [userOriginCoords, dynamicPickupCoords]} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 1.0, dashArray: "5, 10" }} />
               )}
               {userDestCoords && dynamicDropCoords && (
-                <Polyline positions={[dynamicDropCoords, userDestCoords]} pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7, dashArray: "5, 10" }} />
+                <Polyline positions={dynamicDropRoute || [dynamicDropCoords, userDestCoords]} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 1.0, dashArray: "5, 10" }} />
               )}
 
               {/* Computed Dynamic Stops */}
@@ -387,7 +432,7 @@ export default function RideList() {
                 </Marker>
               )}
               {dynamicDropCoords && (
-                <Marker position={dynamicDropCoords}>
+                <Marker position={dynamicDropCoords} icon={selectedRide?.vehicle?.seats <= 2 ? bikeIcon : carIcon}>
                   <Popup className="font-sans font-medium text-sm rounded-xl">Dynamic Drop-off Stop</Popup>
                 </Marker>
               )}
@@ -404,9 +449,21 @@ export default function RideList() {
                 </Marker>
               )}
 
+              {/* Driver's Origin & Destination Endpoints */}
+              {!dynamicPickupCoords && originCoords && (
+                <Marker position={originCoords}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Driver's Origin</Popup>
+                </Marker>
+              )}
+              {!dynamicDropCoords && destCoords && (
+                <Marker position={destCoords}>
+                  <Popup className="font-sans font-medium text-sm rounded-xl">Driver's Destination</Popup>
+                </Marker>
+              )}
+
               {/* Map driver's exact journey behind everything */}
               {routeCoords && (
-                <Polyline positions={routeCoords} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 0.5 }} />
+                <Polyline positions={routeCoords} pathOptions={{ color: '#080a09ff', weight: 4, opacity: 1.0 }} />
               )}
 
               {/* Fallback to user location if absolutely nothing is mapped */}
