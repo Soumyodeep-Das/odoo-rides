@@ -234,8 +234,6 @@ export function RideCard({ ride }: RideCardProps) {
       <Modal
         open={modalState.open}
         onClose={closeModal}
-        title={modalState.title}
-        description={modalState.message}
         size="sm"
       >
         <div className="flex flex-col items-center justify-center pt-2 pb-6 text-center">
@@ -250,7 +248,7 @@ export function RideCard({ ride }: RideCardProps) {
           )}
           <h3 className="text-lg font-bold mb-2">{modalState.title}</h3>
           <p className="text-sm text-muted-foreground">{modalState.message}</p>
-          
+
           {modalState.action ? (
             <div className="flex gap-3 w-full mt-6">
               <button
