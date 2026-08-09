@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { MapPin, Clock, Users, Zap } from 'lucide-react'
 import type { Ride } from '../types'
 import { useAuth } from '#core/hooks/useAuth'
-import { useBookRide, useMyBookings } from '#modules/booking/hooks'
+import { useBookRide, useMyBookings, useCancelBooking } from '#modules/booking/hooks'
 import { cn } from '#lib/utils'
 import { useNavigate } from 'react-router-dom'
 import client from '#core/api/client'
+import { Modal } from '#components/shared/Modal'
+import { CheckCircle2, AlertCircle } from 'lucide-react'
 
 declare global {
   interface Window {
@@ -34,12 +36,35 @@ export function RideCard({ ride }: RideCardProps) {
   const navigate = useNavigate()
   const { mutate: book, isPending } = useBookRide()
   const { data: myBookings } = useMyBookings()
+  const { mutate: cancelBooking, isPending: isCanceling } = useCancelBooking()
   const [seats, setSeats] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'CASH' | 'CARD' | 'UPI'>('CASH')
   const [booked, setBooked] = useState(false)
+  const [modalState, setModalState] = useState<{ open: boolean, title: string, message: string, type: 'success' | 'error', action?: { label: string, onClick: () => void } }>({ open: false, title: '', message: '', type: 'success' })
+
+  const showModal = (title: string, message: string, type: 'success' | 'error' = 'success', action?: { label: string, onClick: () => void }) => {
+    setModalState({ open: true, title, message, type, action })
+  }
+  const closeModal = () => setModalState(prev => ({ ...prev, open: false }))
+
+  const handleCancel = () => {
+    if (!existingBooking) return
+    cancelBooking(
+      { rideId: ride.id, bookingId: existingBooking.id },
+      {
+        onSuccess: () => {
+          setBooked(false)
+          showModal('Booking Cancelled', 'Your booking was cancelled successfully. Any applicable amount has been refunded to your wallet.', 'success')
+        },
+        onError: (err: any) => {
+          showModal('Cancellation Failed', err?.response?.data?.error || err.message || 'Failed to cancel booking', 'error')
+        }
+      }
+    )
+  }
 
   const existingBooking = myBookings?.find(
-    (b) => (b.rideId === ride.id || (b as any).ride?.id === ride.id) && b.status !== 'CANCELED'
+    (b) => (b.rideId === ride.id || (b as any).ride?.id === ride.id) && b.status !== 'CANCELLED'
   )
   const isAlreadyBooked = booked || !!existingBooking
 
@@ -69,13 +94,14 @@ export function RideCard({ ride }: RideCardProps) {
                 try {
                   await client.post(`/rides/${ride.id}/bookings/${data.booking.id}/verify`, response)
                   setBooked(true)
+                  showModal('Payment Successful', 'Your ride has been booked and confirmed.', 'success')
                 } catch (err) {
-                  alert('Payment verification failed')
+                  showModal('Payment Verification Failed', 'We could not verify your payment. Please contact support.', 'error')
                 }
               }
             })
             rzp.on('payment.failed', () => {
-              alert('Payment failed or was cancelled')
+              showModal('Payment Failed', 'Your payment failed or was cancelled.', 'error')
             })
             rzp.open()
           } else {
@@ -85,9 +111,12 @@ export function RideCard({ ride }: RideCardProps) {
         onError: (err: any) => {
           const msg = err?.response?.data?.error || err.message || ''
           if (msg.includes('Insufficient wallet balance')) {
-            navigate('/recharge')
+            showModal('Insufficient Balance', msg, 'error', {
+              label: 'Recharge Wallet',
+              onClick: () => navigate('/recharge')
+            })
           } else {
-            alert(msg)
+            showModal('Booking Failed', msg || 'An error occurred while booking the ride.', 'error')
           }
         }
       }
@@ -155,9 +184,13 @@ export function RideCard({ ride }: RideCardProps) {
 
       {/* Booking action */}
       {isAlreadyBooked ? (
-        <div className="w-full rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-2.5 text-sm font-bold text-green-600 text-center">
-          ✓ Booked ({existingBooking?.payment?.method ?? 'CONFIRMED'})
-        </div>
+        <button
+          onClick={handleCancel}
+          disabled={isCanceling || !existingBooking}
+          className="mt-auto w-full rounded-xl bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 hover:shadow-lg hover:shadow-destructive/20 disabled:opacity-50 transition-all"
+        >
+          {isCanceling ? 'Canceling Booking...' : 'Cancel Booking'}
+        </button>
       ) : isOwnRide ? (
         <div className="w-full rounded-xl bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground text-center">
           Your ride
@@ -197,6 +230,55 @@ export function RideCard({ ride }: RideCardProps) {
           </button>
         </div>
       )}
+
+      <Modal
+        open={modalState.open}
+        onClose={closeModal}
+        title={modalState.title}
+        description={modalState.message}
+        size="sm"
+      >
+        <div className="flex flex-col items-center justify-center pt-2 pb-6 text-center">
+          {modalState.type === 'success' ? (
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-destructive" />
+            </div>
+          )}
+          <h3 className="text-lg font-bold mb-2">{modalState.title}</h3>
+          <p className="text-sm text-muted-foreground">{modalState.message}</p>
+          
+          {modalState.action ? (
+            <div className="flex gap-3 w-full mt-6">
+              <button
+                onClick={closeModal}
+                className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-foreground hover:bg-muted transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  closeModal();
+                  modalState.action?.onClick();
+                }}
+                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all"
+              >
+                {modalState.action.label}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all"
+            >
+              Okay
+            </button>
+          )}
+        </div>
+      </Modal>
     </article>
   )
 }
