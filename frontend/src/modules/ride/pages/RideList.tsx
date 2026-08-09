@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Calendar, Users, MapPin, ArrowLeft } from 'lucide-react'
 import { useRides } from '../hooks'
@@ -389,7 +389,7 @@ export default function RideList() {
             </div>
           ) : (
             <div className="space-y-4 pb-6">
-              {filteredRides.map((ride, idx) => (
+              {filteredRides.map((ride: any, idx: number) => (
                 <div
                   key={ride.id}
                   className={cn(
