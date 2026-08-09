@@ -61,7 +61,7 @@ export const createRide = async (req: Request, res: Response) => {
 
     // Verify driver exists
     const driver = await prisma.user.findUnique({
-      where: { id: data.driverId },
+      where: { id: driverId },
       include: { org: { include: { settings: true } } },
     });
     if (!driver) {
@@ -731,34 +731,41 @@ export const cancelBooking = async (req: Request, res: Response) => {
       });
 
       // 3. Process refund if payment exists and was successful
-      if (booking.payment && booking.payment.status === PaymentStatus.SUCCESS) {
+      if (
+        booking.payment && 
+        booking.payment.status === PaymentStatus.SUCCESS &&
+        booking.payment.method !== PaymentMethod.CASH
+      ) {
         await tx.payment.update({
           where: { id: booking.payment.id },
           data: { status: PaymentStatus.REFUNDED },
         });
 
-        // Refund wallet balance if paid via WALLET
-        if (booking.payment.method === PaymentMethod.WALLET) {
-          const wallet = await tx.wallet.findUnique({
-            where: { userId: booking.passengerId },
-          });
-          if (wallet) {
-            await tx.wallet.update({
-              where: { id: wallet.id },
-              data: { balance: { increment: booking.payment.amount } },
-            });
+        // Refund amount to user's wallet
+        let wallet = await tx.wallet.findUnique({
+          where: { userId: booking.passengerId },
+        });
 
-            await tx.walletTransaction.create({
-              data: {
-                walletId: wallet.id,
-                type: WalletTransactionType.CREDIT,
-                amount: booking.payment.amount,
-                description: `Refund for cancelled Ride ${(rideId as string).substring(0, 8)}`,
-                referenceId: booking.id,
-              },
-            });
-          }
+        if (!wallet) {
+          wallet = await tx.wallet.create({
+            data: { userId: booking.passengerId, balance: 0 },
+          });
         }
+
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: booking.payment.amount } },
+        });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: WalletTransactionType.CREDIT,
+            amount: booking.payment.amount,
+            description: `Refund for cancelled Ride ${(rideId as string).substring(0, 8)}`,
+            referenceId: booking.id,
+          },
+        });
       }
 
       return updatedBooking;
