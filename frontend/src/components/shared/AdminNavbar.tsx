@@ -52,7 +52,7 @@ export function AdminNavbar({ title }: AdminNavbarProps) {
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        {/* Notifications */}
+        Notifications
         <button
           className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
           aria-label="Notifications"
