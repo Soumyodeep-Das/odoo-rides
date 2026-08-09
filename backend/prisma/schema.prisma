@@ -59,7 +59,7 @@ model Vehicle {
   color     String
   year      Int
   seats     Int
-  status    VehicleStatus @default(APPROVED)
+  status    VehicleStatus @default(PENDING)
   regNo     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Car, ArrowLeft, MapPin, Clock, Users, DollarSign } from 'lucide-react'
+import { Car, ArrowLeft, MapPin, Clock, Users, IndianRupee } from 'lucide-react'
 import { useCreateRide } from '../hooks'
 import { useAuth } from '#core/hooks/useAuth'
 import client from '#core/api/client'
@@ -72,12 +72,12 @@ export default function CreateRide() {
       const list = data?.data || []
       setVehicles(list)
       if (list.length > 0) setVehicleId(list[0].id)
-    }).catch(() => {})
+    }).catch(() => { })
   }, [])
 
   const [departure, setDeparture] = useState('')
   const [totalSeats, setTotalSeats] = useState(3)
-  const [price, setPrice] = useState(50)
+
 
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
@@ -86,6 +86,10 @@ export default function CreateRide() {
   const [routeCoords, setRouteCoords] = useState<[number, number][] | null>(null)
   const [routeMetrics, setRouteMetrics] = useState<{ distance: number, duration: number } | null>(null)
   const [position, setPosition] = useState<[number, number] | null>(null)
+
+  const costPerKm = (user as any)?.orgSettings?.costPerKm ?? 4.5
+  const calculatedPrice = routeMetrics ? Math.max(0, Math.round((routeMetrics.distance / 1000) * costPerKm)) : 0
+
 
 
   useEffect(() => {
@@ -180,6 +184,7 @@ export default function CreateRide() {
     e.preventDefault()
     if (!user || !vehicleId) return
 
+    const distanceInKm = routeMetrics ? (routeMetrics.distance / 1000) : 0;
     doCreate(
       {
         vehicleId,
@@ -187,7 +192,7 @@ export default function CreateRide() {
         dropoff: destination,
         departure: departure ? new Date(departure).toISOString() : new Date(Date.now() + 3600000).toISOString(),
         totalSeats,
-        price,
+        distance: distanceInKm,
       },
       { onSuccess: () => navigate('/rides') }
     )
@@ -302,23 +307,17 @@ export default function CreateRide() {
                     onChange={e => setTotalSeats(Number(e.target.value))}
                     className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all appearance-none cursor-pointer"
                   >
-                    {[1,2,3,4,5,6,7].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+                    {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
                   </select>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Price per Seat (₹)</label>
                 <div className="relative group">
-                  <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="number"
-                    min={0}
-                    step={5}
-                    required
-                    value={price}
-                    onChange={e => setPrice(Number(e.target.value))}
-                    className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-primary/50 focus:bg-background transition-all"
-                  />
+                  <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <div className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm font-semibold text-foreground/80 cursor-not-allowed">
+                    {routeMetrics ? calculatedPrice : '--'} <span className="text-muted-foreground ml-1 text-xs font-normal font-mono">(at ₹{costPerKm}/km)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -332,7 +331,7 @@ export default function CreateRide() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || !routeMetrics}
                 className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-60 transition-all uppercase tracking-wider"
               >
                 {isPending ? 'Publishing Ride…' : 'Publish Ride'}

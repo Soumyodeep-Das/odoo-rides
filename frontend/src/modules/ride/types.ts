@@ -39,5 +39,5 @@ export interface CreateRidePayload {
   dropoff: string
   departure: string
   totalSeats: number
-  price: number
+  distance: number
 }

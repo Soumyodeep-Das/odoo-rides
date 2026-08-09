@@ -24,7 +24,7 @@ const createRideSchema = z.object({
     .int()
     .min(1, "Total seats must be at least 1")
     .max(10, "Total seats cannot exceed 10"),
-  price: z.number().min(0, "Price cannot be negative"),
+  distance: z.number().min(0, "Distance cannot be negative"),
 });
 
 const updateRideSchema = z.object({
@@ -32,7 +32,6 @@ const updateRideSchema = z.object({
   dropoff: z.string().min(2).optional(),
   departure: z.iso.datetime().optional(),
   totalSeats: z.number().int().min(1).max(10).optional(),
-  price: z.number().min(0).optional(),
 });
 
 const updateRideStatusSchema = z.object({
@@ -62,11 +61,15 @@ export const createRide = async (req: Request, res: Response) => {
 
     // Verify driver exists
     const driver = await prisma.user.findUnique({
-      where: { id: driverId },
+      where: { id: data.driverId },
+      include: { org: { include: { settings: true } } },
     });
     if (!driver) {
       return res.status(404).json({ error: "Driver user not found" });
     }
+
+    const costPerKm = driver.org?.settings?.costPerKm ?? 4.5;
+    const price = Math.max(0, Math.round(data.distance * costPerKm));
 
     // Verify vehicle exists and belongs to driver
     const vehicle = await prisma.vehicle.findUnique({
@@ -103,7 +106,7 @@ export const createRide = async (req: Request, res: Response) => {
         departure: departureDate,
         totalSeats: data.totalSeats,
         availableSeats: data.totalSeats,
-        price: data.price,
+        price,
         status: RideStatus.SCHEDULED,
       },
       include: {
@@ -342,7 +345,6 @@ export const updateRide = async (req: Request, res: Response) => {
     const updateData: any = {};
     if (data.pickup) updateData.pickup = data.pickup;
     if (data.dropoff) updateData.dropoff = data.dropoff;
-    if (data.price !== undefined) updateData.price = data.price;
 
     if (data.departure) {
       const departureDate = new Date(data.departure);
@@ -384,7 +386,7 @@ export const updateRide = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res
         .status(400)
-        .json({ error: "Validation Error", details: error.errors });
+        .json({ error: "Validation Error", details: error.issues });
     }
     console.error("Error updating ride:", error);
     return res
@@ -445,7 +447,7 @@ export const updateRideStatus = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res
         .status(400)
-        .json({ error: "Validation Error", details: error.errors });
+        .json({ error: "Validation Error", details: error.issues });
     }
     console.error("Error updating ride status:", error);
     return res
@@ -647,7 +649,7 @@ export const bookRide = async (req: Request, res: Response) => {
             walletId: wallet.id,
             type: WalletTransactionType.DEBIT,
             amount: totalAmount,
-            description: `Payment for Ride #${rideId.substring(0, 8)} (${data.seats} seat/s)`,
+            description: `Payment for Ride #${(rideId as string).substring(0, 8)} (${data.seats} seat/s)`,
             referenceId: booking.id,
           },
         });
@@ -685,7 +687,7 @@ export const bookRide = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res
         .status(400)
-        .json({ error: "Validation Error", details: error.errors });
+        .json({ error: "Validation Error", details: error.issues });
     }
     console.error("Error booking ride:", error);
     return res
@@ -751,7 +753,7 @@ export const cancelBooking = async (req: Request, res: Response) => {
                 walletId: wallet.id,
                 type: WalletTransactionType.CREDIT,
                 amount: booking.payment.amount,
-                description: `Refund for cancelled Ride ${rideId.substring(0, 8)}`,
+                description: `Refund for cancelled Ride ${(rideId as string).substring(0, 8)}`,
                 referenceId: booking.id,
               },
             });
