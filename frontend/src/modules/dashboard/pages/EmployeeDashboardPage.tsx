@@ -7,6 +7,7 @@ import { Search, PlusCircle, LogOut, Shield } from 'lucide-react'
 import { cn } from '#lib/utils'
 import { useAuth } from '#core/hooks/useAuth'
 import { useMyVehicles } from '../../vehicle/hooks'
+import { useMyBookings } from '../../booking/hooks'
 
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -28,6 +29,8 @@ export default function EmployeeDashboardPage() {
     const { user, clearAuth } = useAuth()
     const navigate = useNavigate()
     const { data: myVehicles } = useMyVehicles()
+    const { data: myBookings } = useMyBookings()
+    const activeBooking = myBookings?.[0]
 
     const [position, setPosition] = useState<[number, number] | null>(null)
 
@@ -85,13 +88,33 @@ export default function EmployeeDashboardPage() {
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col gap-3 min-w-[320px]">
-                        <div>
-                            <div className="text-sm font-medium font-mono text-foreground">Salt Lake <span className="opacity-50 mx-1">→</span> DLF IT Park</div>
-                            <span className="rounded-full px-2.5 py-0.5 text-xs font-medium capitalize bg-emerald-500/10 text-emerald-600 mt-2 inline-block">confirmed</span>
+                    {activeBooking ? (
+                        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 flex flex-col gap-3 min-w-[320px]">
+                            <div>
+                                <div className="text-sm font-medium font-mono text-foreground">{activeBooking.ride?.pickup || 'Pickup'} <span className="opacity-50 mx-1">→</span> {activeBooking.ride?.dropoff || 'Dropoff'}</div>
+                                <span className={cn(
+                                    "rounded-full px-2.5 py-0.5 text-xs font-medium capitalize mt-2 inline-block",
+                                    activeBooking.status === 'CONFIRMED' ? "bg-emerald-500/10 text-emerald-600" :
+                                        activeBooking.status === 'CANCELLED' ? "bg-destructive/10 text-destructive" :
+                                            "bg-amber-500/10 text-amber-600"
+                                )}>
+                                    {activeBooking.status.toLowerCase()}
+                                </span>
+                            </div>
+                            <div className="text-2xl font-bold text-right text-primary">
+                                {activeBooking.ride?.departure ? (
+                                    activeBooking.ride.departure.includes('T')
+                                        ? new Date(activeBooking.ride.departure).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                        : activeBooking.ride.departure
+                                ) : '08:14'}
+                            </div>
                         </div>
-                        <div className="text-2xl font-bold text-right text-primary">08:14</div>
-                    </div>
+                    ) : (
+                        <div className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-center items-center gap-3 min-w-[320px] opacity-70">
+                            <div className="text-sm font-medium text-muted-foreground">No active rides</div>
+                            <Link to="/rides" className="text-xs font-bold text-primary hover:underline">Find a ride →</Link>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
