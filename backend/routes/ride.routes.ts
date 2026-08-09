@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authenticate } from "../middlewares/auth.middleware.js";
 import {
   createRide,
   getRides,
@@ -11,28 +12,30 @@ import {
   getRideBookings,
   getDriverRides,
   getPassengerRides,
+  verifyBookingPayment
 } from "../controllers/ride.controller.ts";
 
 const router = Router();
 
 // General search and ride creation
-router.post("/", createRide);
-router.get("/", getRides);
+router.post("/", authenticate, createRide);
+router.get("/", authenticate, getRides);
 
 // Specific user ride views (driver & passenger)
-router.get("/my-rides/driver/:driverId", getDriverRides);
-router.get("/my-rides/passenger/:passengerId", getPassengerRides);
+router.get("/my-rides/driver/:driverId", authenticate, getDriverRides);
+router.get("/my-rides/passenger/:passengerId", authenticate, getPassengerRides);
 
 // Single ride operations
-router.get("/:id", getRideById);
-router.put("/:id", updateRide);
-router.patch("/:id", updateRide);
-router.patch("/:id/status", updateRideStatus);
-router.delete("/:id", deleteRide);
+router.get("/:id", authenticate, getRideById);
+router.put("/:id", authenticate, updateRide);
+router.patch("/:id", authenticate, updateRide);
+router.patch("/:id/status", authenticate, updateRideStatus);
+router.delete("/:id", authenticate, deleteRide);
 
 // Booking operations
-router.post("/:id/book", bookRide);
-router.get("/:id/bookings", getRideBookings);
-router.post("/:id/bookings/:bookingId/cancel", cancelBooking);
+router.post("/:id/book", authenticate, bookRide);
+router.get("/:id/bookings", authenticate, getRideBookings);
+router.post("/:id/bookings/:bookingId/cancel", authenticate, cancelBooking);
+router.post("/:id/bookings/:bookingId/verify", authenticate, verifyBookingPayment);
 
 export default router;

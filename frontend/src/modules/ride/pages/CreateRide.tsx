@@ -182,7 +182,6 @@ export default function CreateRide() {
 
     doCreate(
       {
-        driverId: user.id,
         vehicleId,
         pickup: origin,
         dropoff: destination,

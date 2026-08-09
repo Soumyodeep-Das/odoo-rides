@@ -2,8 +2,16 @@ import { useState } from 'react'
 import { MapPin, Clock, Users, Zap } from 'lucide-react'
 import type { Ride } from '../types'
 import { useAuth } from '#core/hooks/useAuth'
-import { useBookRide } from '#modules/booking/hooks'
+import { useBookRide, useMyBookings } from '#modules/booking/hooks'
 import { cn } from '#lib/utils'
+import { useNavigate } from 'react-router-dom'
+import client from '#core/api/client'
+
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
 
 interface RideCardProps {
   ride: Ride
@@ -23,25 +31,65 @@ function formatDate(isoStr: string) {
 
 export function RideCard({ ride }: RideCardProps) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { mutate: book, isPending } = useBookRide()
+  const { data: myBookings } = useMyBookings()
   const [seats, setSeats] = useState(1)
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'CASH' | 'CARD' | 'UPI'>('CASH')
   const [booked, setBooked] = useState(false)
+
+  const existingBooking = myBookings?.find(
+    (b) => (b.rideId === ride.id || (b as any).ride?.id === ride.id) && b.status !== 'CANCELED'
+  )
+  const isAlreadyBooked = booked || !!existingBooking
 
   const isOwnRide = user?.id === ride.driverId
   const isScheduled = ride.status === 'SCHEDULED'
-  const canBook = isScheduled && !isOwnRide && ride.availableSeats > 0
+  const canBook = isScheduled && !isOwnRide && ride.availableSeats > 0 && !isAlreadyBooked
 
   const handleBook = () => {
     if (!user) return
     book(
       {
         rideId: ride.id,
-        passengerId: user.id,
         seats,
-        paymentMethod: 'WALLET',
+        paymentMethod,
       },
       {
-        onSuccess: () => setBooked(true),
+        onSuccess: (data: any) => {
+          if (data?.razorpayOrder) {
+            const rzp = new window.Razorpay({
+              key: data.razorpayOrder.keyId,
+              order_id: data.razorpayOrder.orderId,
+              amount: data.razorpayOrder.amount,
+              currency: data.razorpayOrder.currency,
+              name: 'Odoo Rides',
+              description: 'Ride Booking Payment',
+              handler: async (response: any) => {
+                try {
+                  await client.post(`/rides/${ride.id}/bookings/${data.booking.id}/verify`, response)
+                  setBooked(true)
+                } catch (err) {
+                  alert('Payment verification failed')
+                }
+              }
+            })
+            rzp.on('payment.failed', () => {
+              alert('Payment failed or was cancelled')
+            })
+            rzp.open()
+          } else {
+            setBooked(true)
+          }
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error || err.message || ''
+          if (msg.includes('Insufficient wallet balance')) {
+            navigate('/recharge')
+          } else {
+            alert(msg)
+          }
+        }
       }
     )
   }
@@ -106,9 +154,9 @@ export function RideCard({ ride }: RideCardProps) {
       </div>
 
       {/* Booking action */}
-      {booked ? (
+      {isAlreadyBooked ? (
         <div className="w-full rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-2.5 text-sm font-bold text-green-600 text-center">
-          ✓ Booked Successfully!
+          ✓ Booked ({existingBooking?.payment?.method ?? 'CONFIRMED'})
         </div>
       ) : isOwnRide ? (
         <div className="w-full rounded-xl bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground text-center">
@@ -116,6 +164,16 @@ export function RideCard({ ride }: RideCardProps) {
         </div>
       ) : (
         <div className="flex gap-2 mt-auto">
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as any)}
+            disabled={!canBook}
+            className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm font-semibold focus:outline-none focus:border-primary/50 appearance-none cursor-pointer w-24 shrink-0"
+          >
+            <option value="CASH">Cash</option>
+            <option value="WALLET">Wallet</option>
+            <option value="UPI">UPI</option>
+          </select>
           {ride.availableSeats > 1 && (
             <select
               value={seats}
