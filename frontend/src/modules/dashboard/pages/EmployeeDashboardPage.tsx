@@ -6,6 +6,7 @@ import { Search, PlusCircle, LogOut, Shield } from 'lucide-react'
 
 import { cn } from '#lib/utils'
 import { useAuth } from '#core/hooks/useAuth'
+import { useMyVehicles } from '../../vehicle/hooks'
 
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -26,6 +27,7 @@ export default function EmployeeDashboardPage() {
 
     const { user, clearAuth } = useAuth()
     const navigate = useNavigate()
+    const { data: myVehicles } = useMyVehicles()
 
     const [position, setPosition] = useState<[number, number] | null>(null)
 
@@ -107,29 +109,39 @@ export default function EmployeeDashboardPage() {
                 </div>
             </section>
 
-            {/* ---------- Matching rides ---------- */}
+            {/* ---------- Last 3 rides ---------- */}
             <section>
                 <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Matching rides</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Last 3 rides</h3>
                     <span className="text-xs font-medium text-primary cursor-pointer hover:underline">View all →</span>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* TODO: Replace this dummy data with real data fetched from the database backend later */}
                     {[
-                        { driver: 'Ananya Sen', seats: 2, fare: 85, dep: '08:14', color: 'emerald' },
-                        { driver: 'Rohit Basu', seats: 1, fare: 70, dep: '08:25', color: 'emerald' },
-                        { driver: 'Priya Nair', seats: 3, fare: 60, dep: '08:30', color: 'emerald' }
+                        { date: '7 Aug, 2026', seats: 2, fare: 85, dep: '08:14', color: 'emerald', pickup: 'Park Street' },
+                        { date: '6 Aug, 2026', seats: 1, fare: 70, dep: '08:25', color: 'emerald', pickup: 'Salt Lake Sector V' },
+                        { date: '5 Aug, 2026', seats: 3, fare: 60, dep: '08:30', color: 'emerald', pickup: 'New Town' }
                     ].map((ride, i) => (
-                        <div key={i} className="rounded-2xl border border-dashed border-border bg-card p-5 hover:border-solid hover:border-primary/30 transition-all">
+                        <div
+                            key={i}
+                            onClick={() => {
+                                const pickup = ride.pickup;
+                                const drop = `DLF IT Park gate ${i % 2 === 0 ? 2 : 1}`;
+                                const navDate = new Date().toISOString().split('T')[0];
+                                navigate(`/rides?pickup=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(drop)}&date=${navDate}`);
+                            }}
+                            className="rounded-2xl border border-dashed border-border bg-card p-5 hover:border-solid hover:border-primary/30 transition-all cursor-pointer"
+                        >
                             <div className="flex justify-between items-start mb-4">
-                                <div className="font-semibold text-sm">{ride.driver}</div>
+                                <div className="font-semibold text-sm">{ride.date}</div>
                                 <span className="rounded-full px-2.5 py-0.5 text-[10px] font-medium capitalize bg-emerald-500/10 text-emerald-600">
                                     {ride.seats} left
                                 </span>
                             </div>
                             <div className="space-y-1 py-1">
                                 <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-medium">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" /> Pickup point {i + 1}
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" /> {ride.pickup}
                                 </div>
                                 <div className="w-0.5 h-3 bg-border ml-0.5" />
                                 <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-medium">
@@ -218,16 +230,23 @@ export default function EmployeeDashboardPage() {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">My vehicles</h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-border bg-card p-5">
-                        <div className="font-semibold text-sm">Honda City</div>
-                        <div className="text-xs font-mono text-muted-foreground mt-1">WB 24 CX 4471</div>
-                        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">4 seats · Registered</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-card p-5">
-                        <div className="font-semibold text-sm">TVS Jupiter</div>
-                        <div className="text-xs font-mono text-muted-foreground mt-1">WB 24 AV 1187</div>
-                        <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">1 seat · Registered</div>
-                    </div>
+                    {myVehicles?.map((vehicle: any) => (
+                        <div key={vehicle.id} className="rounded-2xl border border-border bg-card p-5">
+                            <div className="font-semibold text-sm">{vehicle.make} {vehicle.carModel}</div>
+                            <div className="text-xs font-mono text-muted-foreground mt-1">{vehicle.regNo}</div>
+                            <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+                                {vehicle.seats} seat{vehicle.seats > 1 ? 's' : ''} ·
+                                <span className={cn(
+                                    "ml-1 font-semibold",
+                                    vehicle.status === 'APPROVED' ? "text-emerald-600" :
+                                        vehicle.status === 'REJECTED' ? "text-destructive" :
+                                            "text-amber-600"
+                                )}>
+                                    {vehicle.status === 'APPROVED' ? 'Registered' : vehicle.status === 'REJECTED' ? 'Rejected' : 'Pending Approval'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                     <Link to="/vehicles/register" className="rounded-2xl border border-dashed border-border flex items-center justify-center text-sm font-medium text-muted-foreground hover:bg-muted transition-colors hover:text-foreground min-h-[120px]">
                         + Register vehicle
                     </Link>
