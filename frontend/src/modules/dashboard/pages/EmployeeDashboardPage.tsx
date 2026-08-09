@@ -8,6 +8,8 @@ import { cn } from '#lib/utils'
 import { useAuth } from '#core/hooks/useAuth'
 import { useMyVehicles } from '../../vehicle/hooks'
 import { useMyBookings } from '../../booking/hooks'
+import * as walletApi from '../../wallet/api'
+import { useQuery } from '@tanstack/react-query'
 
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -28,6 +30,13 @@ export default function EmployeeDashboardPage() {
 
     const { user, clearAuth } = useAuth()
     const navigate = useNavigate()
+    const userId = user?.id || ''
+
+    const { data: wallet } = useQuery({
+        queryKey: ['wallet', userId],
+        queryFn: () => walletApi.getWallet(userId),
+        enabled: !!userId,
+    })
     const { data: myVehicles } = useMyVehicles()
     const { data: myBookings } = useMyBookings()
     const activeBooking = myBookings?.[0]
@@ -136,7 +145,7 @@ export default function EmployeeDashboardPage() {
             <section>
                 <div className="flex justify-between items-center mb-5">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Last 3 rides</h3>
-                    <span className="text-xs font-medium text-primary cursor-pointer hover:underline">View all →</span>
+                    {/* <span className="text-xs font-medium text-primary cursor-pointer hover:underline">View all →</span> */}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -284,7 +293,7 @@ export default function EmployeeDashboardPage() {
                 <div className="rounded-2xl bg-primary text-primary-foreground p-6 flex justify-between items-center">
                     <div>
                         <div className="text-xs font-semibold opacity-70 uppercase tracking-widest">Available Balance</div>
-                        <div className="text-3xl font-bold mt-2 font-mono">₹430</div>
+                        <div className="text-3xl font-bold mt-2 font-mono">₹{wallet?.balance?.toLocaleString('en-IN') || '0'}</div>
                     </div>
                     <Link to="/recharge" className="bg-background text-foreground rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center">
                         + Recharge
@@ -292,20 +301,25 @@ export default function EmployeeDashboardPage() {
                 </div>
 
                 <div className="rounded-2xl border border-border bg-card mt-4 overflow-hidden">
-                    <div className="flex justify-between items-center p-4 border-b border-border">
-                        <div>
-                            <div className="font-medium text-sm">Ride — Ananya Sen</div>
-                            <div className="text-xs text-muted-foreground mt-1 font-mono">Today, 08:14</div>
+                    {wallet?.transactions?.length > 0 ? (
+                        wallet.transactions.slice(0, 5).map((tx: any) => (
+                            <div key={tx.id} className="flex justify-between items-center p-4 border-b border-border last:border-0">
+                                <div>
+                                    <div className="font-medium text-sm">{tx.description || tx.type}</div>
+                                    <div className="text-xs text-muted-foreground mt-1 font-mono">
+                                        {new Date(tx.createdAt).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div className={cn("font-bold text-sm", tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-destructive')}>
+                                    {tx.type === 'CREDIT' ? '+' : '−'} ₹{Number(tx.amount).toLocaleString('en-IN')}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-6 text-center text-sm text-muted-foreground">
+                            No recent transactions
                         </div>
-                        <div className="font-bold text-destructive text-sm">− ₹85</div>
-                    </div>
-                    <div className="flex justify-between items-center p-4 border-b border-border">
-                        <div>
-                            <div className="font-medium text-sm">Wallet recharge</div>
-                            <div className="text-xs text-muted-foreground mt-1 font-mono">Yesterday, 19:02</div>
-                        </div>
-                        <div className="font-bold text-emerald-600 text-sm">+ ₹500</div>
-                    </div>
+                    )}
                 </div>
             </section>
 
