@@ -153,6 +153,10 @@ export const getWallet = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
 
+    if (typeof userId !== "string") {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
     const wallet = await prisma.wallet.findUnique({
       where: { userId },
       include: {
